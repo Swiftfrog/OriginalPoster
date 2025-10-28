@@ -16,10 +16,11 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using static StrmAssistant.Reflection.EmbyLocalMetadata;
-using static StrmAssistant.Reflection.EmbyProviders;
-using static StrmAssistant.Reflection.MovieDb;
-using static StrmAssistant.Reflection.Tvdb;
+using static OriginalPoster.Reflection.EmbyLocalMetadata;
+using static OriginalPoster.Reflection.EmbyProviders;
+using static OriginalPoster.Reflection.MovieDb;
+using static OriginalPoster.Reflection.Tvdb;
+
 using Season = MediaBrowser.Controller.Entities.TV.Season;
 
 // 注意：请将命名空间替换为您项目的实际名称
