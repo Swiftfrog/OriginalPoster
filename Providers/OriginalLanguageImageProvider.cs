@@ -15,8 +15,8 @@ using System.IO; // For Stream
 
 namespace OriginalPoster.Providers
 {
-    // --- 关键修改：实现 IRemoteImageProvider<Movie> (泛型) ---
-    public class OriginalLanguageImageProvider : IRemoteImageProvider<Movie>, IHasOrder
+    // --- 关键修改：实现 IRemoteImageProviderWithOptions ---
+    public class OriginalLanguageImageProvider : IRemoteImageProviderWithOptions, IHasOrder
     {
         public string Name => "OriginalPoster Provider";
         public int Order => 100; // Ensure it runs after TMDB provider
@@ -29,34 +29,46 @@ namespace OriginalPoster.Providers
             // 从 ILogManager 获取 logger
             _logger = logManager.GetLogger(GetType().Name);
             // 记录构造函数被调用的日志
-            _logger.Info("OriginalLanguageImageProvider<Movie> constructor called.");
+            _logger.Info("OriginalLanguageImageProviderWithOptions constructor called.");
         }
         // ---
 
 
-        // Supports method now takes Movie (because of IRemoteImageProvider<Movie>)
-        public bool Supports(Movie item)
+        // Supports method takes BaseItem
+        public bool Supports(BaseItem item)
         {
-            _logger.Debug("Supports called for movie: {MovieName}", item.Name);
+            _logger.Debug("Supports called for item: {ItemName}, Type: {ItemType}", item.Name, item.GetType().Name);
             // Only process Movie items with a TMDB ID
-            var isSupported = item.HasProviderId(MetadataProviders.Tmdb);
+            var isSupported = item is Movie movie && movie.HasProviderId(MetadataProviders.Tmdb);
             _logger.Debug("Supports result: {IsSupported}", isSupported);
             return isSupported;
         }
 
-        // GetImages method now takes Movie and LibraryOptions (because of IRemoteImageProvider<Movie>)
-        public Task<IEnumerable<RemoteImageInfo>> GetImages(Movie item, LibraryOptions libraryOptions, CancellationToken cancellationToken)
+        // GetImages method takes BaseItem and LibraryOptions (inherited from IRemoteImageProvider)
+        public Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, LibraryOptions libraryOptions, CancellationToken cancellationToken)
         {
-            _logger.Info("GetImages called for movie: {MovieName}", item.Name);
+            _logger.Info("GetImages(BaseItem, LibraryOptions) called for item: {ItemName}", item.Name);
 
             // Since we are simplifying, just return an empty list
-            // This should still appear in the logs if the provider is called
+            // This should still appear in the logs if the provider is called via the old method
             var emptyList = new List<RemoteImageInfo>();
-            _logger.Info("GetImages returning {Count} images for movie: {MovieName}", emptyList.Count, item.Name);
+            _logger.Info("GetImages(BaseItem, LibraryOptions) returning {Count} images for item: {ItemName}", emptyList.Count, item.Name);
             return Task.FromResult<IEnumerable<RemoteImageInfo>>(emptyList);
         }
 
-        // --- Required by IRemoteImageProvider<Movie> (inherits from IRemoteImageProvider) ---
+        // NEW GetImages method takes RemoteImageFetchOptions (from IRemoteImageProviderWithOptions)
+        public Task<IEnumerable<RemoteImageInfo>> GetImages(RemoteImageFetchOptions options, CancellationToken cancellationToken)
+        {
+             _logger.Info("GetImages(RemoteImageFetchOptions) called for item: {ItemName}", options.Item.Name);
+
+             // Since we are simplifying, just return an empty list
+             // This is the method we likely want to implement for the main logic later
+             var emptyList = new List<RemoteImageInfo>();
+             _logger.Info("GetImages(RemoteImageFetchOptions) returning {Count} images for item: {ItemName}", emptyList.Count, options.Item.Name);
+             return Task.FromResult<IEnumerable<RemoteImageInfo>>(emptyList);
+        }
+
+        // --- Required by IRemoteImageProvider (inherited by IRemoteImageProviderWithOptions) ---
 
         /// <summary>
         /// Defines which types of images this provider supports for this item.
