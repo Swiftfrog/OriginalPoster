@@ -17,35 +17,37 @@ namespace OriginalPoster.Providers
 {
     public class OriginalLanguageImageProvider : IRemoteImageProvider, IHasOrder
     {
-        public string Name => "OriginalPoster Provider";
+        public string Name => "OriginalPoster Test Provider"; // 修改名称，方便识别
         public int Order => 100; // Ensure it runs after TMDB provider
 
         private readonly ILogger _logger; // Use Emby's ILogger
-        private readonly IHttpClient _httpClient;
 
-        // --- 修改：尝试使用 ILogManager 来获取 logger ---
-        public OriginalLanguageImageProvider(ILogManager logManager, IHttpClient httpClient)
+        // --- 简化构造函数：只注入 ILogManager ---
+        public OriginalLanguageImageProvider(ILogManager logManager)
         {
             // 从 ILogManager 获取 logger
             _logger = logManager.GetLogger(GetType().Name);
-            _httpClient = httpClient;
         }
-
-        // --- 或者，作为更激进的测试，完全移除构造函数依赖（需要在方法内获取服务）---
-        // public OriginalLanguageImageProvider()
-        // {
-        //     // 这种方式较难获取 IHttpClient，不推荐
-        //     // 可能需要通过其他方式（如 Plugin.Instance）获取或在方法内动态获取
-        //     // 暂时先用 ILogManager 的方式
-        // }
-        // ---
-
 
         // Supports method now takes BaseItem
         public bool Supports(BaseItem item)
         {
             // Only process Movie items with a TMDB ID
-            return item is Movie movie && movie.HasProviderId(MetadataProviders.Tmdb);
+            // This is the key check for our plugin's scope.
+            var isMovie = item is Movie;
+            var hasTmdbId = item.HasProviderId(MetadataProviders.Tmdb);
+            var result = isMovie && hasTmdbId;
+
+            if (result)
+            {
+                _logger.Debug("Supports: Item '{ItemName}' is a Movie with TMDB ID. Provider will be considered.", item.Name);
+            }
+            else
+            {
+                _logger.Debug("Supports: Item '{ItemName}' (Type: {ItemType}) does not meet criteria. IsMovie: {IsMovie}, HasTmdbId: {HasTmdbId}", item.Name, item.GetType().Name, isMovie, hasTmdbId);
+            }
+
+            return result;
         }
 
         // GetImages method now takes BaseItem and LibraryOptions
@@ -54,57 +56,36 @@ namespace OriginalPoster.Providers
             // Cast to Movie since our Supports method ensures this
             if (!(item is Movie movie))
             {
-                _logger.Debug("Item '{ItemName}' is not a Movie, skipping.", item.Name);
+                _logger.Debug("GetImages: Item '{ItemName}' is not a Movie, skipping.", item.Name);
                 return new List<RemoteImageInfo>();
             }
 
-            _logger.Debug("GetImages called for movie: {MovieName}", movie.Name);
+            _logger.Info("GetImages CALLED for movie: {MovieName} (TMDB ID: {TmdbId}). This confirms the provider is being invoked by Emby.", movie.Name, movie.GetProviderId(MetadataProviders.Tmdb));
 
-            if (!Plugin.Instance.Configuration.EnablePlugin)
+            // --- "Hello World" Logic: Return a single, identifiable test image ---
+            // Use a simple, static image URL that you can easily recognize.
+            // Example: A placeholder image service
+            var testImageUrl = "https://via.placeholder.com/1000x1500/FF0000/FFFFFF?text=OriginalPoster+Test+Image";
+
+            var testImageInfo = new RemoteImageInfo
             {
-                _logger.Debug("Plugin is disabled, skipping.");
-                return new List<RemoteImageInfo>();
-            }
+                ProviderName = Name, // Use the provider's Name property
+                Url = testImageUrl,
+                Type = ImageType.Primary, // Or Primary, depending on desired Emby image type
+                Language = "test" // Set a test language code
+            };
 
-            var tmdbId = movie.GetProviderId(MetadataProviders.Tmdb);
-            if (string.IsNullOrEmpty(tmdbId))
-            {
-                _logger.Debug("Movie '{MovieName}' does not have a TMDB ID. Skipping.", movie.Name);
-                return new List<RemoteImageInfo>();
-            }
+            // Log the image being returned
+            _logger.Info("GetImages: Returning test image URL: {ImageUrl} for movie: {MovieName}", testImageUrl, movie.Name);
 
-            var apiKey = Plugin.Instance.Configuration.TmdbApiKey;
-            if (string.IsNullOrEmpty(apiKey))
-            {
-                 _logger.Warn("TMDB API Key is not configured. Skipping for movie: {MovieName}", movie.Name);
-                 return new List<RemoteImageInfo>(); // API Key is required
-            }
+            // Return a list containing only our test image
+            // Emby will take the first image in the list if this provider is selected and has high enough priority.
+            return new List<RemoteImageInfo> { testImageInfo };
 
-            _logger.Debug("Processing movie '{MovieName}' with TMDB ID {TmdbId}.", movie.Name, tmdbId);
-
-            try
-            {
-                // 1. Get the original language
-                var originalLanguage = await GetOriginalLanguageAsync(tmdbId, apiKey, cancellationToken);
-                if (string.IsNullOrEmpty(originalLanguage))
-                {
-                    _logger.Warn("Could not determine original language for TMDB ID {TmdbId}. Skipping.", tmdbId);
-                    return new List<RemoteImageInfo>();
-                }
-
-                _logger.Debug("Original language for TMDB ID {TmdbId} is {OriginalLanguage}.", tmdbId, originalLanguage);
-
-                // 2. Get and sort posters based on original language
-                var sortedPosters = await GetSortedPostersAsync(tmdbId, apiKey, originalLanguage, cancellationToken);
-
-                _logger.Debug("Returning {Count} sorted posters for TMDB ID {TmdbId}.", sortedPosters.Count, tmdbId);
-                return sortedPosters;
-            }
-            catch (Exception ex)
-            {
-                _logger.ErrorException($"An error occurred while processing movie '{movie.Name}' (TMDB ID {tmdbId}).", ex);
-                return new List<RemoteImageInfo>(); // Return empty list on error
-            }
+            // --- Original complex logic is commented out for this test ---
+            // if (!Plugin.Instance.Configuration.EnablePlugin) { ... }
+            // var tmdbId = movie.GetProviderId(MetadataProviders.Tmdb); ...
+            // ... (rest of complex logic)
         }
 
         // --- Required by IRemoteImageProvider ---
@@ -114,6 +95,8 @@ namespace OriginalPoster.Providers
         /// </summary>
         public IEnumerable<ImageType> GetSupportedImages(BaseItem item)
         {
+            // We provide Primary images (which Emby often uses for main posters)
+            _logger.Debug("GetSupportedImages called for item: {ItemName}", item.Name);
             return new[] { ImageType.Primary };
         }
 
@@ -124,97 +107,8 @@ namespace OriginalPoster.Providers
         {
             // Returning a completed task with a default HttpResponseInfo.
             // Emby should handle the download of the URL provided in GetImages.
+            _logger.Debug("GetImageResponse called for URL: {ImageUrl}. Returning default response.", url);
             return Task.FromResult(new HttpResponseInfo());
-        }
-
-
-        // --- Helper Methods ---
-
-        /// <summary>
-        /// Fetches the original language of a movie from TMDB API.
-        /// </summary>
-        private async Task<string?> GetOriginalLanguageAsync(string tmdbId, string apiKey, CancellationToken cancellationToken)
-        {
-            var url = $"https://api.themoviedb.org/3/movie/{tmdbId}?api_key={apiKey}&language=en-US";
-
-            var options = new HttpRequestOptions
-            {
-                Url = url,
-                CancellationToken = cancellationToken,
-                BufferContent = true // Buffer the response content
-            };
-
-            using var response = await _httpClient.GetResponse(options);
-            using var stream = response.Content;
-            using var reader = new StreamReader(stream);
-
-            var jsonString = await reader.ReadToEndAsync();
-            using var doc = JsonDocument.Parse(jsonString);
-
-            if (doc.RootElement.TryGetProperty("original_language", out var langElement))
-            {
-                return langElement.GetString();
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Fetches all posters from TMDB API and sorts them based on the original language.
-        /// </summary>
-        private async Task<List<RemoteImageInfo>> GetSortedPostersAsync(string tmdbId, string apiKey, string originalLanguage, CancellationToken cancellationToken)
-        {
-            var url = $"https://api.themoviedb.org/3/movie/{tmdbId}/images?api_key={apiKey}";
-
-            var options = new HttpRequestOptions
-            {
-                Url = url,
-                CancellationToken = cancellationToken,
-                BufferContent = true
-            };
-
-            using var response = await _httpClient.GetResponse(options);
-            using var stream = response.Content;
-            using var reader = new StreamReader(stream);
-
-            var jsonString = await reader.ReadToEndAsync();
-            using var doc = JsonDocument.Parse(jsonString);
-
-            var postersArray = doc.RootElement.GetProperty("posters").EnumerateArray();
-
-            var matchingPosters = new List<RemoteImageInfo>();
-            var otherPosters = new List<RemoteImageInfo>();
-
-            foreach (var poster in postersArray)
-            {
-                var isoCode = poster.GetProperty("iso_639_1").GetString(); // Can be null
-                var filePath = poster.GetProperty("file_path").GetString();
-                if (string.IsNullOrEmpty(filePath)) continue; // Skip posters without a file path
-
-                var fullImageUrl = $"https://image.tmdb.org/t/p/original{filePath}";
-                var imageInfo = new RemoteImageInfo
-                {
-                    ProviderName = Name, // Use the provider's Name property
-                    Url = fullImageUrl,
-                    Type = ImageType.Primary, // Or Primary, depending on desired Emby image type
-                    Language = isoCode // Set the language code for potential future use by Emby
-                };
-
-                if (isoCode == originalLanguage)
-                {
-                    matchingPosters.Add(imageInfo);
-                }
-                else
-                {
-                    otherPosters.Add(imageInfo);
-                }
-            }
-
-            // Combine lists: matching first, then others
-            var sortedList = new List<RemoteImageInfo>(matchingPosters);
-            sortedList.AddRange(otherPosters);
-
-            return sortedList;
         }
     }
 }

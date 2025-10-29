@@ -6,7 +6,7 @@ using System;
 
 namespace OriginalPoster
 {
-    public class ServerEntryPoint : IServerEntryPoint
+    public class ServerEntryPoint : IServerEntryPoint, IDisposable
     {
         private readonly ILogger _logger;
         // private readonly IProviderManager _providerManager; // Remove this
