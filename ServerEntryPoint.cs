@@ -12,7 +12,7 @@ namespace OriginalPoster
         public ServerEntryPoint(ILogManager logManager)
         {
             _logger = logManager.GetLogger(GetType().Name);
-            _logger.Info("ServerEntryPoint constructor called.");
+            _logger.Info("=== ServerEntryPoint constructor called ===");
         }
 
         /// <summary>
@@ -21,9 +21,28 @@ namespace OriginalPoster
         /// </summary>
         public void Run()
         {
-            _logger.Info("OriginalPoster plugin loaded successfully.");
-            _logger.Info("Plugin enabled: {0}", Plugin.Instance?.Configuration?.EnablePlugin ?? false);
-            _logger.Info("TMDB API Key configured: {0}", !string.IsNullOrEmpty(Plugin.Instance?.Configuration?.TmdbApiKey ?? ""));
+            _logger.Info("=== OriginalPoster plugin LOADED ===");
+            
+            if (Plugin.Instance == null)
+            {
+                _logger.Error("Plugin.Instance is NULL in Run()!");
+                return;
+            }
+
+            var config = Plugin.Instance.PluginConfiguration;
+            if (config == null)
+            {
+                _logger.Error("Configuration is NULL in Run()!");
+                return;
+            }
+
+            _logger.Info("Plugin Enabled: {0}", config.EnablePlugin);
+            _logger.Info("TMDB API Key Configured: {0}", !string.IsNullOrEmpty(config.TmdbApiKey));
+            
+            if (string.IsNullOrEmpty(config.TmdbApiKey))
+            {
+                _logger.Warn("⚠️  TMDB API Key is NOT configured! Plugin will not work until configured.");
+            }
         }
 
         /// <summary>
