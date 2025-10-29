@@ -1,20 +1,6 @@
 #nullable enable // 启用可空引用类型检查
 
 using MediaBrowser.Controller.Entities; // BaseItem
-using MediaBrowser.Controller.Entities.Movies; // For Movie type check
-using MediaBrowser.Controller.Providers; // IRemoteImageProvider (remove IHasOrder)
-using MediaBrowser.Model.Configuration; // LibraryOptions
-using MediaBrowser.Model.Entities; // ImageType
-using MediaBrowser.Model.Logging; // ILogger
-using MediaBrowser.Model.Providers; // RemoteImageInfo
-using System.Collections.Generic;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using MediaBrowser.Common.Net; // For IHttpClient, HttpRequestOptions, HttpResponseInfo
-using System.Text.Json; // For JSON parsing
-using System.IO; // For Stream
-
 using MediaBrowser.Controller.Entities.Movies; // For Movie type
 using MediaBrowser.Controller.Providers; // For IMetadataProvider, ItemLookupInfo, etc.
 using MediaBrowser.Model.Entities; // For ImageType, ProviderIdDictionary, etc.
@@ -28,6 +14,7 @@ using System.Text.Json; // For JSON parsing
 using System.IO; // For Stream
 using System;
 using MediaBrowser.Controller.Entities; // For BaseItem
+using MediaBrowser.Model.IO; // For FileSystemMetadata
 
 namespace OriginalPoster.Providers
 {
@@ -104,16 +91,19 @@ namespace OriginalPoster.Providers
                 var localImageInfos = new List<LocalImageInfo>();
                 foreach (var remoteInfo in sortedRemoteImageInfos)
                 {
-                    // Create a LocalImageInfo and populate its FileInfo with data from RemoteImageInfo
+                    // Create a FileSystemMetadata object to represent the remote image file
+                    var fileSystemMetadata = new FileSystemMetadata
+                    {
+                        FullName = remoteInfo.Url, // Use the URL as the FullName for remote images
+                        IsDirectory = false, // It's a file, not a directory
+                        Exists = true // Assume it exists for now; Emby will handle download later
+                    };
+
+                    // Create a LocalImageInfo and set its FileInfo to the FileSystemMetadata
                     var localInfo = new LocalImageInfo
                     {
-                        FileInfo = new ItemImageInfo
-                        {
-                            Path = remoteInfo.Url, // Use the URL from RemoteImageInfo
-                            Type = remoteInfo.Type // Use the type from RemoteImageInfo
-                            // Note: Height, Width, DateModified etc. might be populated if available from the API
-                            // or they might be filled in later by Emby during the download process.
-                        }
+                        FileInfo = fileSystemMetadata, // This is the correct assignment
+                        Type = remoteInfo.Type // Set the image type directly on LocalImageInfo
                     };
                     localImageInfos.Add(localInfo);
                 }
