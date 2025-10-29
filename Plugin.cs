@@ -1,27 +1,37 @@
-using MediaBrowser.Controller; // IServerApplicationHost
-using MediaBrowser.Controller.Plugins; // BasePluginSimpleUI
 using MediaBrowser.Common.Plugins;
+using MediaBrowser.Controller.Plugins;
+using MediaBrowser.Model.Logging;
 using System;
-using OriginalPoster.Config;
 
-namespace OriginalPoster;
-
-public class Plugin : BasePluginSimpleUI<OriginalPosterConfig>
+namespace PreferOriginalPoster.Plugin
 {
-    public override string Name => "OriginalPoster";
-    public override string Description => "优先显示影视作品原生语言的海报。";
-    public override Guid Id => new("09872246-4676-EBD7-E81C-9B95E12A832B");
-
-    // 构造函数：BasePluginSimpleUI 要求传入 IApplicationHost
-    public Plugin(IServerApplicationHost applicationHost)
-        : base(applicationHost)
+    public class Plugin : BasePlugin, IServerEntryPoint
     {
-        Instance = this;
+        public static Plugin Instance { get; private set; }
+        public ILogger Logger { get; }
+
+        public override string Name => "Prefer Original Poster";
+        // 生成新 GUID: https://www.guidgenerator.com/
+        public override Guid Id => Guid.Parse("d8f3b3a1-5c9e-4f8a-b1c2-3d4e5f6a7b8c");
+
+        public Plugin(ILogManager logManager)
+        {
+            Instance = this;
+            Logger = logManager.GetLogger(Name);
+        }
+
+        public void Run()
+        {
+            try
+            {
+                PreferOriginalPosterMod.Initialize(Logger);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Failed to initialize PreferOriginalPoster plugin", ex);
+            }
+        }
+
+        public void Dispose() { }
     }
-
-    // 单例访问点（便于其他类获取配置）
-    public static Plugin Instance { get; private set; } = null!;
-
-    // 便捷属性：从插件内部获取当前配置
-    public OriginalPosterConfig Configuration => GetOptions();
 }

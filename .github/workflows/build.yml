@@ -1,33 +1,64 @@
-name: Build OriginalPoster Plugin
+name: Build PreferOriginalPoster Plugin
 
 on:
-  workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: [ main, v* ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, v* ]
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: windows-latest
-
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup .NET
+      - name: Setup .NET 8.0
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.x'
+          dotnet-version: '8.0.x'
 
       - name: Restore dependencies
         run: dotnet restore
 
-      - name: Build the project
-        run: dotnet build --no-restore --configuration Release
+      - name: Build plugin
+        run: dotnet build -c Release --no-restore
+
+      - name: Create plugin package
+        run: |
+          PLUGIN_DIR="PreferOriginalPoster"
+          OUTPUT_DIR="artifacts/${PLUGIN_DIR}"
+          mkdir -p "${OUTPUT_DIR}"
+
+          # Copy main plugin DLL
+          cp "PreferOriginalPoster.Plugin/bin/Release/net8.0/PreferOriginalPoster.dll" "${OUTPUT_DIR}/"
+
+          # Copy Harmony dependency (required at runtime)
+          cp "PreferOriginalPoster.Plugin/bin/Release/net8.0/0Harmony.dll" "${OUTPUT_DIR}/"
+
+          # Create version file (optional but helpful)
+          echo "${{ github.sha }}" > "${OUTPUT_DIR}/version.txt"
+          echo "Built from commit: ${{ github.sha }}" >> "${OUTPUT_DIR}/README.txt"
+          echo "Place this folder under your Emby server's 'plugins/' directory." >> "${OUTPUT_DIR}/README.txt"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: OriginalPoster
-          path: ./bin/Release/net8.0/OriginalPoster.dll
+          name: PreferOriginalPoster-Emby-Plugin
+          path: artifacts/
+          retention-days: 7
+
+      - name: Create Release (on push to main)
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/PreferOriginalPoster/*.dll
+          body: |
+            Auto-built plugin for Emby Server.
+            - Requires Emby **4.9.1.80** or compatible.
+            - Requires official **MovieDb** and **Tvdb** metadata plugins installed.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

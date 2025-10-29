@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Version>1.0.0.0</Version>
+    <AssemblyVersion>$(Version)</AssemblyVersion>
+    <FileVersion>$(Version)</FileVersion>
+    <LangVersion>8.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <RootNamespace>PreferOriginalPoster.Plugin</RootNamespace>
+    <AssemblyName>PreferOriginalPoster</AssemblyName>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Emby 官方 NuGet 包 -->
+    <PackageReference Include="Lib.Harmony" Version="2.4.1" />
+    <PackageReference Include="mediabrowser.server.core" Version="4.9.1.80" />
+  </ItemGroup>
+
+</Project>
