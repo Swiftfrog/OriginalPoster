@@ -15,36 +15,37 @@ using System.IO; // For Stream
 
 namespace OriginalPoster.Providers
 {
-    public class OriginalLanguageImageProvider : IRemoteImageProvider, IHasOrder
+    // --- 关键修改：实现 IRemoteImageProvider<Movie> (泛型) ---
+    public class OriginalLanguageImageProvider : IRemoteImageProvider<Movie>, IHasOrder
     {
         public string Name => "OriginalPoster Provider";
         public int Order => 100; // Ensure it runs after TMDB provider
 
         private readonly ILogger _logger; // Use Emby's ILogger
 
-        // --- 最简构造函数：只使用 ILogManager ---
+        // --- 构造函数：只使用 ILogManager ---
         public OriginalLanguageImageProvider(ILogManager logManager)
         {
             // 从 ILogManager 获取 logger
             _logger = logManager.GetLogger(GetType().Name);
             // 记录构造函数被调用的日志
-            _logger.Info("OriginalLanguageImageProvider constructor called.");
+            _logger.Info("OriginalLanguageImageProvider<Movie> constructor called.");
         }
         // ---
 
 
-        // Supports method now takes BaseItem
-        public bool Supports(BaseItem item)
+        // Supports method now takes Movie (because of IRemoteImageProvider<Movie>)
+        public bool Supports(Movie item)
         {
-            _logger.Debug("Supports called for item: {ItemName}, Type: {ItemType}", item.Name, item.GetType().Name);
+            _logger.Debug("Supports called for movie: {MovieName}", item.Name);
             // Only process Movie items with a TMDB ID
-            var isSupported = item is Movie movie && movie.HasProviderId(MetadataProviders.Tmdb);
+            var isSupported = item.HasProviderId(MetadataProviders.Tmdb);
             _logger.Debug("Supports result: {IsSupported}", isSupported);
             return isSupported;
         }
 
-        // GetImages method now takes BaseItem and LibraryOptions
-        public Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, LibraryOptions libraryOptions, CancellationToken cancellationToken)
+        // GetImages method now takes Movie and LibraryOptions (because of IRemoteImageProvider<Movie>)
+        public Task<IEnumerable<RemoteImageInfo>> GetImages(Movie item, LibraryOptions libraryOptions, CancellationToken cancellationToken)
         {
             _logger.Info("GetImages called for movie: {MovieName}", item.Name);
 
@@ -55,7 +56,7 @@ namespace OriginalPoster.Providers
             return Task.FromResult<IEnumerable<RemoteImageInfo>>(emptyList);
         }
 
-        // --- Required by IRemoteImageProvider ---
+        // --- Required by IRemoteImageProvider<Movie> (inherits from IRemoteImageProvider) ---
 
         /// <summary>
         /// Defines which types of images this provider supports for this item.
