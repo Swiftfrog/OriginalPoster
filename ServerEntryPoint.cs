@@ -1,35 +1,29 @@
-using MediaBrowser.Controller.Plugins; // IServerEntryPoint
-using MediaBrowser.Model.Logging; // ILogger
-using System;
+// ServerEntryPoint.cs
+using MediaBrowser.Controller.Plugins;
+using Microsoft.Extensions.DependencyInjection;
+using OriginalPoster.Providers;
 
-namespace OriginalPoster
+namespace OriginalPoster;
+
+public class ServerEntryPoint : IServerEntryPoint
 {
-    public class ServerEntryPoint : IServerEntryPoint, IDisposable
+    private readonly IApplicationHost _applicationHost;
+
+    public ServerEntryPoint(IApplicationHost applicationHost)
     {
-        private readonly ILogger _logger;
+        _applicationHost = applicationHost;
+    }
 
-        public ServerEntryPoint(ILogger logger) // Only inject ILogger
-        {
-            _logger = logger;
-        }
+    public Task RunAsync()
+    {
+        // 注册你的元数据提供者
+        _applicationHost.GetServices<IServiceCollection>()
+                        .AddSingleton<IMetadataProvider<Movie>, OriginalLanguageMetadataProvider>();
+        return Task.CompletedTask;
+    }
 
-        /// <summary>
-        /// Emby 服务器启动并完成初始化后调用。
-        /// 用于执行插件的一次性初始化任务。
-        /// </summary>
-        public void Run()
-        {
-            _logger.Info("OriginalPoster plugin loaded successfully.");
-            // The provider should be discovered automatically by Emby if it's correctly implemented and discoverable.
-        }
-
-        /// <summary>
-        /// Emby 服务器关闭时调用。
-        /// 用于清理插件占用的资源。
-        /// </summary>
-        public void Dispose()
-        {
-            _logger.Info("OriginalPoster plugin is being unloaded.");
-        }
+    public void Dispose()
+    {
+        // 无资源需要释放
     }
 }
