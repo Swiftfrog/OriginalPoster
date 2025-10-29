@@ -1,19 +1,13 @@
 using MediaBrowser.Controller.Plugins; // IServerEntryPoint
-// using MediaBrowser.Controller.Providers; // IProviderManager (Remove this if not needed elsewhere)
 using MediaBrowser.Model.Logging; // ILogger
 using System;
-// using OriginalPoster.Providers; // OriginalLanguageImageProvider (Remove this if not needed elsewhere)
 
 namespace OriginalPoster
 {
     public class ServerEntryPoint : IServerEntryPoint, IDisposable
     {
         private readonly ILogger _logger;
-        // private readonly IProviderManager _providerManager; // Remove this
-        // private readonly OriginalLanguageImageProvider _imageProvider; // Remove this
 
-        // 构造函数：注入 Emby 的 ILogger
-        // Remove IProviderManager and OriginalLanguageImageProvider from constructor
         public ServerEntryPoint(ILogger logger) // Only inject ILogger
         {
             _logger = logger;
@@ -26,7 +20,6 @@ namespace OriginalPoster
         public void Run()
         {
             _logger.Info("OriginalPoster plugin loaded successfully.");
-            // Remove the provider registration code
             // The provider should be discovered automatically by Emby if it's correctly implemented and discoverable.
         }
 
