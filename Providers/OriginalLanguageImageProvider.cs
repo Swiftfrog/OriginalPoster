@@ -15,60 +15,96 @@ using System.IO; // For Stream
 
 namespace OriginalPoster.Providers
 {
-    // --- 关键修改：实现 IRemoteImageProviderWithOptions ---
-    public class OriginalLanguageImageProvider : IRemoteImageProviderWithOptions, IHasOrder
+    public class OriginalLanguageImageProvider : IRemoteImageProvider, IHasOrder
     {
         public string Name => "OriginalPoster Provider";
         public int Order => 100; // Ensure it runs after TMDB provider
 
         private readonly ILogger _logger; // Use Emby's ILogger
+        private readonly IHttpClient _httpClient; // Use Emby's IHttpClient
 
-        // --- 构造函数：只使用 ILogManager ---
-        public OriginalLanguageImageProvider(ILogManager logManager)
+        // --- 恢复 IHttpClient 注入 ---
+        public OriginalLanguageImageProvider(ILogManager logManager, IHttpClient httpClient)
         {
             // 从 ILogManager 获取 logger
             _logger = logManager.GetLogger(GetType().Name);
+            _httpClient = httpClient;
             // 记录构造函数被调用的日志
-            _logger.Info("OriginalLanguageImageProviderWithOptions constructor called.");
+            _logger.Info("OriginalLanguageImageProvider constructor called.");
         }
         // ---
 
 
-        // Supports method takes BaseItem
+        // Supports method now takes BaseItem
         public bool Supports(BaseItem item)
         {
             _logger.Debug("Supports called for item: {ItemName}, Type: {ItemType}", item.Name, item.GetType().Name);
             // Only process Movie items with a TMDB ID
             var isSupported = item is Movie movie && movie.HasProviderId(MetadataProviders.Tmdb);
-            _logger.Debug("Supports result: {IsSupported}", isSupported);
+            _logger.Debug("Supports result for '{ItemName}': {IsSupported}", item.Name, isSupported);
             return isSupported;
         }
 
-        // GetImages method takes BaseItem and LibraryOptions (inherited from IRemoteImageProvider)
-        public Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, LibraryOptions libraryOptions, CancellationToken cancellationToken)
+        // GetImages method now takes BaseItem and LibraryOptions
+        public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, LibraryOptions libraryOptions, CancellationToken cancellationToken)
         {
-            _logger.Info("GetImages(BaseItem, LibraryOptions) called for item: {ItemName}", item.Name);
+            // Cast to Movie since our Supports method ensures this
+            if (!(item is Movie movie))
+            {
+                _logger.Debug("Item '{ItemName}' is not a Movie, skipping.", item.Name);
+                return new List<RemoteImageInfo>();
+            }
 
-            // Since we are simplifying, just return an empty list
-            // This should still appear in the logs if the provider is called via the old method
-            var emptyList = new List<RemoteImageInfo>();
-            _logger.Info("GetImages(BaseItem, LibraryOptions) returning {Count} images for item: {ItemName}", emptyList.Count, item.Name);
-            return Task.FromResult<IEnumerable<RemoteImageInfo>>(emptyList);
+            _logger.Info("GetImages called for movie: {MovieName}", movie.Name);
+
+            if (!Plugin.Instance.Configuration.EnablePlugin)
+            {
+                _logger.Debug("Plugin is disabled, skipping.");
+                return new List<RemoteImageInfo>();
+            }
+
+            var tmdbId = movie.GetProviderId(MetadataProviders.Tmdb);
+            if (string.IsNullOrEmpty(tmdbId))
+            {
+                _logger.Debug("Movie '{MovieName}' does not have a TMDB ID. Skipping.", movie.Name);
+                return new List<RemoteImageInfo>();
+            }
+
+            var apiKey = Plugin.Instance.Configuration.TmdbApiKey;
+            if (string.IsNullOrEmpty(apiKey))
+            {
+                 _logger.Warn("TMDB API Key is not configured. Skipping for movie: {MovieName}", movie.Name);
+                 return new List<RemoteImageInfo>(); // API Key is required
+            }
+
+            _logger.Debug("Processing movie '{MovieName}' with TMDB ID {TmdbId}.", movie.Name, tmdbId);
+
+            try
+            {
+                // 1. Get the original language
+                var originalLanguage = await GetOriginalLanguageAsync(tmdbId, apiKey, cancellationToken);
+                if (string.IsNullOrEmpty(originalLanguage))
+                {
+                    _logger.Warn("Could not determine original language for TMDB ID {TmdbId}. Skipping.", tmdbId);
+                    return new List<RemoteImageInfo>();
+                }
+
+                _logger.Info("Original language for TMDB ID {TmdbId} ({MovieName}) is {OriginalLanguage}.", tmdbId, movie.Name, originalLanguage);
+
+                // 2. Get and sort posters based on original language
+                var sortedPosters = await GetSortedPostersAsync(tmdbId, apiKey, originalLanguage, cancellationToken);
+
+                _logger.Info("Returning {Count} sorted posters for TMDB ID {TmdbId} ({MovieName}).", sortedPosters.Count, tmdbId, movie.Name);
+                return sortedPosters;
+            }
+            catch (Exception ex)
+            {
+                _logger.ErrorException($"An error occurred while processing movie '{movie.Name}' (TMDB ID {tmdbId}).", ex);
+                return new List<RemoteImageInfo>(); // Return empty list on error
+            }
         }
 
-        // NEW GetImages method takes RemoteImageFetchOptions (from IRemoteImageProviderWithOptions)
-        public Task<IEnumerable<RemoteImageInfo>> GetImages(RemoteImageFetchOptions options, CancellationToken cancellationToken)
-        {
-             _logger.Info("GetImages(RemoteImageFetchOptions) called for item: {ItemName}", options.Item.Name);
-
-             // Since we are simplifying, just return an empty list
-             // This is the method we likely want to implement for the main logic later
-             var emptyList = new List<RemoteImageInfo>();
-             _logger.Info("GetImages(RemoteImageFetchOptions) returning {Count} images for item: {ItemName}", emptyList.Count, options.Item.Name);
-             return Task.FromResult<IEnumerable<RemoteImageInfo>>(emptyList);
-        }
-
-        // --- Required by IRemoteImageProvider (inherited by IRemoteImageProviderWithOptions) ---
+        // --- Required by IRemoteImageProvider ---
 
         /// <summary>
         /// Defines which types of images this provider supports for this item.
@@ -76,7 +112,6 @@ namespace OriginalPoster.Providers
         public IEnumerable<ImageType> GetSupportedImages(BaseItem item)
         {
             _logger.Debug("GetSupportedImages called for item: {ItemName}", item.Name);
-            // We provide Primary images (which Emby often uses for main posters)
             return new[] { ImageType.Primary };
         }
 
@@ -89,6 +124,111 @@ namespace OriginalPoster.Providers
             // Returning a completed task with a default HttpResponseInfo.
             // Emby should handle the download of the URL provided in GetImages.
             return Task.FromResult(new HttpResponseInfo());
+        }
+
+
+        // --- Helper Methods ---
+
+        /// <summary>
+        /// Fetches the original language of a movie from TMDB API.
+        /// </summary>
+        private async Task<string?> GetOriginalLanguageAsync(string tmdbId, string apiKey, CancellationToken cancellationToken)
+        {
+            var url = $"https://api.themoviedb.org/3/movie/{tmdbId}?api_key={apiKey}&language=en-US";
+
+            var options = new HttpRequestOptions
+            {
+                Url = url,
+                CancellationToken = cancellationToken,
+                BufferContent = true // Buffer the response content
+            };
+
+            _logger.Debug("Fetching original language from TMDB for ID {TmdbId} using URL: {Url}", tmdbId, url);
+
+            using var response = await _httpClient.GetResponse(options);
+            using var stream = response.Content;
+            using var reader = new StreamReader(stream);
+
+            var jsonString = await reader.ReadToEndAsync();
+            using var doc = JsonDocument.Parse(jsonString);
+
+            if (doc.RootElement.TryGetProperty("original_language", out var langElement))
+            {
+                var lang = langElement.GetString();
+                _logger.Debug("Fetched original language '{Language}' for TMDB ID {TmdbId}.", lang, tmdbId);
+                return lang;
+            }
+
+            _logger.Warn("Could not find 'original_language' property in TMDB response for ID {TmdbId}.", tmdbId);
+            return null;
+        }
+
+        /// <summary>
+        /// Fetches all posters from TMDB API and sorts them based on the original language.
+        /// </summary>
+        private async Task<List<RemoteImageInfo>> GetSortedPostersAsync(string tmdbId, string apiKey, string originalLanguage, CancellationToken cancellationToken)
+        {
+            var url = $"https://api.themoviedb.org/3/movie/{tmdbId}/images?api_key={apiKey}";
+
+            var options = new HttpRequestOptions
+            {
+                Url = url,
+                CancellationToken = cancellationToken,
+                BufferContent = true
+            };
+
+            _logger.Debug("Fetching posters from TMDB for ID {TmdbId} using URL: {Url}", tmdbId, url);
+
+            using var response = await _httpClient.GetResponse(options);
+            using var stream = response.Content;
+            using var reader = new StreamReader(stream);
+
+            var jsonString = await reader.ReadToEndAsync();
+            using var doc = JsonDocument.Parse(jsonString);
+
+            var postersArray = doc.RootElement.GetProperty("posters").EnumerateArray();
+
+            var matchingPosters = new List<RemoteImageInfo>();
+            var otherPosters = new List<RemoteImageInfo>();
+
+            foreach (var poster in postersArray)
+            {
+                var isoCode = poster.GetProperty("iso_639_1").GetString(); // Can be null
+                var filePath = poster.GetProperty("file_path").GetString();
+                if (string.IsNullOrEmpty(filePath))
+                {
+                    _logger.Debug("Skipping poster with empty file_path for TMDB ID {TmdbId}.", tmdbId);
+                    continue; // Skip posters without a file path
+                }
+
+                var fullImageUrl = $"https://image.tmdb.org/t/p/original{filePath}";
+                var imageInfo = new RemoteImageInfo
+                {
+                    ProviderName = Name, // Use the provider's Name property
+                    Url = fullImageUrl,
+                    Type = ImageType.Primary, // Or Primary, depending on desired Emby image type
+                    Language = isoCode // Set the language code for potential future use by Emby
+                };
+
+                if (isoCode == originalLanguage)
+                {
+                    matchingPosters.Add(imageInfo);
+                    _logger.Debug("Added matching poster (Lang: {Lang}) for TMDB ID {TmdbId}: {Url}", isoCode, tmdbId, fullImageUrl);
+                }
+                else
+                {
+                    otherPosters.Add(imageInfo);
+                    _logger.Debug("Added other poster (Lang: {Lang}) for TMDB ID {TmdbId}: {Url}", isoCode, tmdbId, fullImageUrl);
+                }
+            }
+
+            // Combine lists: matching first, then others
+            var sortedList = new List<RemoteImageInfo>(matchingPosters);
+            sortedList.AddRange(otherPosters);
+
+            _logger.Info("Sorted {TotalCount} posters for TMDB ID {TmdbId}: {MatchingCount} matching original language '{OriginalLanguage}', {OtherCount} others.", sortedList.Count, tmdbId, matchingPosters.Count, originalLanguage, otherPosters.Count);
+
+            return sortedList;
         }
     }
 }
