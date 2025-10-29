@@ -2,9 +2,9 @@ name: Build PreferOriginalPoster Plugin
 
 on:
   push:
-    branches: [ main, v* ]
+    branches: [ main, p* ]
   pull_request:
-    branches: [ main, v* ]
+    branches: [ main, p* ]
   workflow_dispatch:
 
 jobs:
