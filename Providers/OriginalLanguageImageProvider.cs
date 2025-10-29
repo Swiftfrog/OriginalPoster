@@ -1,8 +1,10 @@
-using MediaBrowser.Controller.Entities.Movies; // For Movie type check
-using MediaBrowser.Controller.Providers; // For IRemoteImageProvider, IHasOrder, LibraryOptions
-using MediaBrowser.Model.Entities; // For ImageType, BaseItem
-using MediaBrowser.Model.Logging; // For ILogger (Emby's standard)
-using MediaBrowser.Model.Providers; // For RemoteImageInfo
+using MediaBrowser.Controller.Entities; // BaseItem
+// using MediaBrowser.Controller.Entities.Movies; // For Movie type check
+using MediaBrowser.Controller.Providers; // IRemoteImageProvider, IHasOrder
+using MediaBrowser.Model.Configuration; // LibraryOptions
+using MediaBrowser.Model.Entities; // ImageType
+using MediaBrowser.Model.Logging; // ILogger
+using MediaBrowser.Model.Providers; // RemoteImageInfo
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
