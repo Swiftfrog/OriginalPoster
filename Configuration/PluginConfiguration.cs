@@ -1,7 +1,7 @@
 using Emby.Web.GenericEdit;
 using System.ComponentModel;
 
-namespace Emby.OriginalPoster.Plugin.Configuration;
+namespace OriginalPoster.Configuration;
 
 public class PluginConfiguration : EditableOptionsBase
 {
