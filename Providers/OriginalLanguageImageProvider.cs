@@ -1,5 +1,5 @@
 using MediaBrowser.Controller.Entities; // BaseItem
-// using MediaBrowser.Controller.Entities.Movies; // For Movie type check
+using MediaBrowser.Controller.Entities.Movies; // For Movie type check
 using MediaBrowser.Controller.Providers; // IRemoteImageProvider, IHasOrder
 using MediaBrowser.Model.Configuration; // LibraryOptions
 using MediaBrowser.Model.Entities; // ImageType
