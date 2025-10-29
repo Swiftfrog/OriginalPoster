@@ -1,8 +1,6 @@
-#nullable enable // 启用可空引用类型检查
-
 using MediaBrowser.Controller.Entities; // BaseItem
 using MediaBrowser.Controller.Entities.Movies; // For Movie type check
-using MediaBrowser.Controller.Providers; // IRemoteImageProvider (remove IHasOrder)
+using MediaBrowser.Controller.Providers; // IRemoteImageProvider, IHasOrder
 using MediaBrowser.Model.Configuration; // LibraryOptions
 using MediaBrowser.Model.Entities; // ImageType
 using MediaBrowser.Model.Logging; // ILogger
@@ -101,7 +99,7 @@ namespace OriginalPoster.Providers
             }
             catch (Exception ex)
             {
-                _logger.ErrorException($"An error occurred while processing movie '{movie.Name}' (TMDB ID {tmdbId}).", ex);
+                _logger.ErrorException($"An error occurred while processing movie '{movie.Name}' (TMDB ID {TmdbId}).", ex);
                 return new List<RemoteImageInfo>();
             }
         }
