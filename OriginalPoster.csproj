@@ -1,27 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-    <Version>1.0.0.0</Version>
-    <AssemblyVersion>$(Version)</AssemblyVersion>
-    <FileVersion>$(Version)</FileVersion>
-    <CopyLocalLockFileAssemblies>True</CopyLocalLockFileAssemblies>
-    <IncludeSourceRevisionInInformationalVersion>true</IncludeSourceRevisionInInformationalVersion>
-    <LangVersion>latest</LangVersion>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
   </PropertyGroup>
-
   <ItemGroup>
-    <!-- 核心依赖：通过 NuGet 引用 Emby Server Core -->
     <PackageReference Include="MediaBrowser.Server.Core" Version="4.9.1.80" />
-    <PackageReference Include="Lib.Harmony" Version="2.4.1" />
   </ItemGroup>
-
-  <!-- 构建后事件：使用 ILRepack 将 0Harmony.dll 合并到主 DLL 中 -->
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="dotnet tool install -g ilrepack --version 2.0.44" ContinueOnError="true" />
-    <Exec Command="ilrepack /out:$(TargetDir)OriginalPoster.dll $(TargetPath) $(TargetDir)0Harmony.dll" />
-  </Target>
-
-</Project>
+</Project
