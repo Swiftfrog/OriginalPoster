@@ -47,7 +47,7 @@ namespace OriginalPoster.Providers
             _logger.Info("=== GetImages called for: {0} ===", item.Name);
 
             // 检查插件是否启用
-            if (Plugin.Instance?.PluginConfiguration?.EnablePlugin != true)
+            if (Plugin.Instance?.OriginalPosterConfig?.EnablePlugin != true)
             {
                 _logger.Info("Plugin is disabled in configuration.");
                 return new List<RemoteImageInfo>();
@@ -67,7 +67,7 @@ namespace OriginalPoster.Providers
                 return new List<RemoteImageInfo>();
             }
 
-            var apiKey = Plugin.Instance?.PluginConfiguration?.TmdbApiKey;
+            var apiKey = Plugin.Instance?.OriginalPosterConfig?.TmdbApiKey;
             if (string.IsNullOrEmpty(apiKey))
             {
                 _logger.Error("TMDB API Key not configured! Please configure in plugin settings.");
