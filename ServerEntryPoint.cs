@@ -1,5 +1,5 @@
 using MediaBrowser.Controller.Plugins; // IServerEntryPoint
-using MediaBrowser.Model.Logging; // ILogger
+using MediaBrowser.Model.Logging; // ILogger, ILogManager
 using System;
 
 namespace OriginalPoster
@@ -8,10 +8,11 @@ namespace OriginalPoster
     {
         private readonly ILogger _logger;
 
-        // 构造函数：注入 Emby 的 ILogger
-        public ServerEntryPoint(ILogger logger)
+        // 修复：注入 ILogManager 而不是 ILogger
+        public ServerEntryPoint(ILogManager logManager)
         {
-            _logger = logger;
+            _logger = logManager.GetLogger(GetType().Name);
+            _logger.Info("ServerEntryPoint constructor called.");
         }
 
         /// <summary>
@@ -21,7 +22,8 @@ namespace OriginalPoster
         public void Run()
         {
             _logger.Info("OriginalPoster plugin loaded successfully.");
-            // No provider registration needed, relying on Emby's auto-discovery
+            _logger.Info("Plugin enabled: {0}", Plugin.Instance?.Configuration?.EnablePlugin ?? false);
+            _logger.Info("TMDB API Key configured: {0}", !string.IsNullOrEmpty(Plugin.Instance?.Configuration?.TmdbApiKey ?? ""));
         }
 
         /// <summary>
