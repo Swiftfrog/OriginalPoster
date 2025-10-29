@@ -1,126 +1,131 @@
-#nullable enable // 启用可空引用类型检查
-
 using MediaBrowser.Controller.Entities; // BaseItem
-using MediaBrowser.Controller.Entities.Movies; // For Movie type
-using MediaBrowser.Controller.Providers; // For IMetadataProvider, ItemLookupInfo, etc.
-using MediaBrowser.Model.Entities; // For ImageType, ProviderIdDictionary, etc.
-using MediaBrowser.Model.Providers; // For MetadataResult, RemoteImageInfo
-using MediaBrowser.Model.Logging; // For ILogger
+using MediaBrowser.Controller.Entities.Movies; // For Movie type check
+using MediaBrowser.Controller.Providers; // IRemoteImageProvider, IHasOrder
+using MediaBrowser.Model.Configuration; // LibraryOptions
+using MediaBrowser.Model.Entities; // ImageType
+using MediaBrowser.Model.Logging; // ILogger
+using MediaBrowser.Model.Providers; // RemoteImageInfo
 using System.Collections.Generic;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using MediaBrowser.Common.Net; // For IHttpClient, HttpRequestOptions, HttpResponseInfo
 using System.Text.Json; // For JSON parsing
 using System.IO; // For Stream
-using System;
-using MediaBrowser.Controller.Entities; // For BaseItem
-using MediaBrowser.Model.IO; // For FileSystemMetadata
 
 namespace OriginalPoster.Providers
 {
-    public class OriginalLanguageMetadataProvider : IMetadataProvider<Movie>
+    public class OriginalLanguageImageProvider : IRemoteImageProvider, IHasOrder
     {
-        public string Name => "OriginalPoster Metadata Provider";
+        public string Name => "OriginalPoster Provider";
+        public int Order => 100; // Ensure it runs after TMDB provider
 
-        private readonly ILogger _logger;
-        private readonly IHttpClient _httpClient;
+        private readonly ILogger _logger; // Use Emby's ILogger
+        private readonly IHttpClient _httpClient; // Use Emby's IHttpClient
 
-        public OriginalLanguageMetadataProvider(ILogManager logManager, IHttpClient httpClient)
+        // --- 恢复 IHttpClient 注入 ---
+        public OriginalLanguageImageProvider(ILogManager logManager, IHttpClient httpClient)
         {
+            // 从 ILogManager 获取 logger
             _logger = logManager.GetLogger(GetType().Name);
             _httpClient = httpClient;
-            _logger.Info("OriginalLanguageMetadataProvider constructor called.");
+            // 记录构造函数被调用的日志
+            _logger.Info("OriginalLanguageImageProvider constructor called.");
         }
+        // ---
 
+
+        // Supports method now takes BaseItem
         public bool Supports(BaseItem item)
         {
-            // Only support Movie items for this provider
-            return item is Movie;
+            _logger.Debug("Supports called for item: {ItemName}, Type: {ItemType}", item.Name, item.GetType().Name);
+            // Only process Movie items with a TMDB ID
+            var isSupported = item is Movie movie && movie.HasProviderId(MetadataProviders.Tmdb);
+            _logger.Debug("Supports result for '{ItemName}': {IsSupported}", item.Name, isSupported);
+            return isSupported;
         }
 
-        public async Task<MetadataResult<Movie>> GetMetadata(ItemLookupInfo info, IDirectoryService directoryService, CancellationToken cancellationToken)
+        // GetImages method now takes BaseItem and LibraryOptions
+        public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, LibraryOptions libraryOptions, CancellationToken cancellationToken)
         {
-            _logger.Debug("GetMetadata called for info.Name: {InfoName}, ProviderIds: {@ProviderIds}", info.Name, info.ProviderIds);
+            // Cast to Movie since our Supports method ensures this
+            if (!(item is Movie movie))
+            {
+                _logger.Debug("Item '{ItemName}' is not a Movie, skipping.", item.Name);
+                return new List<RemoteImageInfo>();
+            }
 
-            // 1. Check if the plugin is enabled via configuration
+            _logger.Info("GetImages called for movie: {MovieName}", movie.Name);
+
             if (!Plugin.Instance.Configuration.EnablePlugin)
             {
-                _logger.Debug("Plugin is disabled, skipping metadata fetch.");
-                return new MetadataResult<Movie>();
+                _logger.Debug("Plugin is disabled, skipping.");
+                return new List<RemoteImageInfo>();
             }
 
-            // 2. Get TMDB ID from the lookup info
-            if (!info.ProviderIds.TryGetValue(MetadataProviders.Tmdb.ToString(), out string tmdbId) || string.IsNullOrEmpty(tmdbId))
+            var tmdbId = movie.GetProviderId(MetadataProviders.Tmdb);
+            if (string.IsNullOrEmpty(tmdbId))
             {
-                _logger.Debug("Item lookup info does not have a TMDB ID. Skipping metadata fetch for {InfoName}.", info.Name);
-                return new MetadataResult<Movie>();
+                _logger.Debug("Movie '{MovieName}' does not have a TMDB ID. Skipping.", movie.Name);
+                return new List<RemoteImageInfo>();
             }
 
-            // 3. Get user-configured TMDB API Key
             var apiKey = Plugin.Instance.Configuration.TmdbApiKey;
             if (string.IsNullOrEmpty(apiKey))
             {
-                 _logger.Warn("TMDB API Key is not configured. Skipping metadata fetch for {InfoName}.", info.Name);
-                 return new MetadataResult<Movie>(); // API Key is required
+                 _logger.Warn("TMDB API Key is not configured. Skipping for movie: {MovieName}", movie.Name);
+                 return new List<RemoteImageInfo>(); // API Key is required
             }
 
-            _logger.Debug("Processing metadata for movie '{InfoName}' with TMDB ID {TmdbId}.", info.Name, tmdbId);
-
-            var metadataResult = new MetadataResult<Movie>();
-            metadataResult.Item = new Movie(); // Initialize the item
-            metadataResult.Item.SetProviderId(MetadataProviders.Tmdb, tmdbId); // Set the TMDB ID on the new item
+            _logger.Debug("Processing movie '{MovieName}' with TMDB ID {TmdbId}.", movie.Name, tmdbId);
 
             try
             {
-                // 4. Get the original language
+                // 1. Get the original language
                 var originalLanguage = await GetOriginalLanguageAsync(tmdbId, apiKey, cancellationToken);
                 if (string.IsNullOrEmpty(originalLanguage))
                 {
-                    _logger.Warn("Could not determine original language for TMDB ID {TmdbId}. Skipping image processing.", tmdbId);
-                    // Still return an empty result, but the metadata part is initialized
-                    return metadataResult;
+                    _logger.Warn("Could not determine original language for TMDB ID {TmdbId}. Skipping.", tmdbId);
+                    return new List<RemoteImageInfo>();
                 }
 
-                _logger.Debug("Original language for TMDB ID {TmdbId} is {OriginalLanguage}.", tmdbId, originalLanguage);
+                _logger.Info("Original language for TMDB ID {TmdbId} ({MovieName}) is {OriginalLanguage}.", tmdbId, movie.Name, originalLanguage);
 
-                // 5. Get and sort posters based on original language
-                var sortedRemoteImageInfos = await GetSortedPostersAsRemoteImageInfosAsync(tmdbId, apiKey, originalLanguage, cancellationToken);
+                // 2. Get and sort posters based on original language
+                var sortedPosters = await GetSortedPostersAsync(tmdbId, apiKey, originalLanguage, cancellationToken);
 
-                // 6. Convert RemoteImageInfo to LocalImageInfo and assign to metadata result
-                // This is the key step that injects the prioritized images into the metadata process
-                var localImageInfos = new List<LocalImageInfo>();
-                foreach (var remoteInfo in sortedRemoteImageInfos)
-                {
-                    // Create a FileSystemMetadata object to represent the remote image file
-                    var fileSystemMetadata = new FileSystemMetadata
-                    {
-                        FullName = remoteInfo.Url, // Use the URL as the FullName for remote images
-                        IsDirectory = false, // It's a file, not a directory
-                        Exists = true // Assume it exists for now; Emby will handle download later
-                    };
-
-                    // Create a LocalImageInfo and set its FileInfo to the FileSystemMetadata
-                    var localInfo = new LocalImageInfo
-                    {
-                        FileInfo = fileSystemMetadata, // This is the correct assignment
-                        Type = remoteInfo.Type // Set the image type directly on LocalImageInfo
-                    };
-                    localImageInfos.Add(localInfo);
-                }
-
-                metadataResult.Images = localImageInfos; // Assign the converted list
-
-                _logger.Info("Assigned {Count} sorted posters (converted to LocalImageInfo) to metadata result for TMDB ID {TmdbId}.", localImageInfos.Count, tmdbId);
+                _logger.Info("Returning {Count} sorted posters for TMDB ID {TmdbId} ({MovieName}).", sortedPosters.Count, tmdbId, movie.Name);
+                return sortedPosters;
             }
             catch (Exception ex)
             {
-                _logger.ErrorException($"An error occurred while processing metadata for '{info.Name}' (TMDB ID {tmdbId}).", ex);
-                // Return an empty result on error, but log the issue
-                return new MetadataResult<Movie>();
+                _logger.ErrorException($"An error occurred while processing movie '{movie.Name}' (TMDB ID {tmdbId}).", ex);
+                return new List<RemoteImageInfo>(); // Return empty list on error
             }
-
-            return metadataResult;
         }
+
+        // --- Required by IRemoteImageProvider ---
+
+        /// <summary>
+        /// Defines which types of images this provider supports for this item.
+        /// </summary>
+        public IEnumerable<ImageType> GetSupportedImages(BaseItem item)
+        {
+            _logger.Debug("GetSupportedImages called for item: {ItemName}", item.Name);
+            return new[] { ImageType.Primary };
+        }
+
+        /// <summary>
+        /// Fetches the image response stream. Not used by us since we provide URLs via GetImages.
+        /// </summary>
+        public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken cancellationToken)
+        {
+            _logger.Debug("GetImageResponse called for URL: {Url}", url);
+            // Returning a completed task with a default HttpResponseInfo.
+            // Emby should handle the download of the URL provided in GetImages.
+            return Task.FromResult(new HttpResponseInfo());
+        }
+
 
         // --- Helper Methods ---
 
@@ -155,14 +160,13 @@ namespace OriginalPoster.Providers
             }
 
             _logger.Warn("Could not find 'original_language' property in TMDB response for ID {TmdbId}.", tmdbId);
-            return null; // Or throw an exception if the property is expected to always exist
+            return null;
         }
 
         /// <summary>
-        /// Fetches all posters from TMDB API, sorts them based on the original language,
-        /// and converts them to RemoteImageInfo objects (which can then be converted to LocalImageInfo).
+        /// Fetches all posters from TMDB API and sorts them based on the original language.
         /// </summary>
-        private async Task<List<RemoteImageInfo>> GetSortedPostersAsRemoteImageInfosAsync(string tmdbId, string apiKey, string originalLanguage, CancellationToken cancellationToken)
+        private async Task<List<RemoteImageInfo>> GetSortedPostersAsync(string tmdbId, string apiKey, string originalLanguage, CancellationToken cancellationToken)
         {
             var url = $"https://api.themoviedb.org/3/movie/{tmdbId}/images?api_key={apiKey}";
 
@@ -191,10 +195,13 @@ namespace OriginalPoster.Providers
             {
                 var isoCode = poster.GetProperty("iso_639_1").GetString(); // Can be null
                 var filePath = poster.GetProperty("file_path").GetString();
-                if (string.IsNullOrEmpty(filePath)) continue; // Skip posters without a file path
+                if (string.IsNullOrEmpty(filePath))
+                {
+                    _logger.Debug("Skipping poster with empty file_path for TMDB ID {TmdbId}.", tmdbId);
+                    continue; // Skip posters without a file path
+                }
 
                 var fullImageUrl = $"https://image.tmdb.org/t/p/original{filePath}";
-
                 var imageInfo = new RemoteImageInfo
                 {
                     ProviderName = Name, // Use the provider's Name property
