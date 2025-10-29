@@ -29,5 +29,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: OriginalPoster-Plugin
-          path: ./OriginalPoster/bin/Release/net8.0/OriginalPoster.dll
+          name: OriginalPoster
+          path: ./bin/Release/net8.0/OriginalPoster.dll
