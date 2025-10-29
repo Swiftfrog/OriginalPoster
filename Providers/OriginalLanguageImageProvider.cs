@@ -18,7 +18,7 @@ namespace OriginalPoster.Providers
     public class OriginalLanguageImageProvider : IRemoteImageProvider, IHasOrder
     {
         public string Name => "OriginalPoster Provider";
-        public int Order => 100; // Ensure it runs after TMDB provider
+        public int Order => 5; // Ensure it runs after TMDB provider
 
         private readonly ILogger _logger; // Use Emby's ILogger
         private readonly IHttpClient _httpClient; // Use Emby's IHttpClient
