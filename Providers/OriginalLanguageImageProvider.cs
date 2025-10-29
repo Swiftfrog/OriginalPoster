@@ -15,6 +15,20 @@ using MediaBrowser.Common.Net; // For IHttpClient, HttpRequestOptions, HttpRespo
 using System.Text.Json; // For JSON parsing
 using System.IO; // For Stream
 
+using MediaBrowser.Controller.Entities.Movies; // For Movie type
+using MediaBrowser.Controller.Providers; // For IMetadataProvider, ItemLookupInfo, etc.
+using MediaBrowser.Model.Entities; // For ImageType, ProviderIdDictionary, etc.
+using MediaBrowser.Model.Providers; // For MetadataResult, RemoteImageInfo
+using MediaBrowser.Model.Logging; // For ILogger
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using MediaBrowser.Common.Net; // For IHttpClient, HttpRequestOptions, HttpResponseInfo
+using System.Text.Json; // For JSON parsing
+using System.IO; // For Stream
+using System;
+using MediaBrowser.Controller.Entities; // For BaseItem
+
 namespace OriginalPoster.Providers
 {
     public class OriginalLanguageMetadataProvider : IMetadataProvider<Movie>
@@ -23,9 +37,6 @@ namespace OriginalPoster.Providers
 
         private readonly ILogger _logger;
         private readonly IHttpClient _httpClient;
-        // Access the plugin configuration through Plugin.Instance
-        // We might need IServerConfigurationManager to access the config more robustly if Plugin.Instance isn't available here,
-        // but for now, let's try with Plugin.Instance as it worked in IRemoteImageProvider.
 
         public OriginalLanguageMetadataProvider(ILogManager logManager, IHttpClient httpClient)
         {
@@ -86,13 +97,30 @@ namespace OriginalPoster.Providers
                 _logger.Debug("Original language for TMDB ID {TmdbId} is {OriginalLanguage}.", tmdbId, originalLanguage);
 
                 // 5. Get and sort posters based on original language
-                var sortedImageInfos = await GetSortedPostersAsImageInfosAsync(tmdbId, apiKey, originalLanguage, cancellationToken);
+                var sortedRemoteImageInfos = await GetSortedPostersAsRemoteImageInfosAsync(tmdbId, apiKey, originalLanguage, cancellationToken);
 
-                // 6. Assign the sorted image infos to the metadata result's Images property
+                // 6. Convert RemoteImageInfo to LocalImageInfo and assign to metadata result
                 // This is the key step that injects the prioritized images into the metadata process
-                metadataResult.Images = sortedImageInfos;
+                var localImageInfos = new List<LocalImageInfo>();
+                foreach (var remoteInfo in sortedRemoteImageInfos)
+                {
+                    // Create a LocalImageInfo and populate its FileInfo with data from RemoteImageInfo
+                    var localInfo = new LocalImageInfo
+                    {
+                        FileInfo = new ItemImageInfo
+                        {
+                            Path = remoteInfo.Url, // Use the URL from RemoteImageInfo
+                            Type = remoteInfo.Type // Use the type from RemoteImageInfo
+                            // Note: Height, Width, DateModified etc. might be populated if available from the API
+                            // or they might be filled in later by Emby during the download process.
+                        }
+                    };
+                    localImageInfos.Add(localInfo);
+                }
 
-                _logger.Info("Assigned {Count} sorted posters to metadata result for TMDB ID {TmdbId}.", sortedImageInfos.Count, tmdbId);
+                metadataResult.Images = localImageInfos; // Assign the converted list
+
+                _logger.Info("Assigned {Count} sorted posters (converted to LocalImageInfo) to metadata result for TMDB ID {TmdbId}.", localImageInfos.Count, tmdbId);
             }
             catch (Exception ex)
             {
@@ -142,9 +170,9 @@ namespace OriginalPoster.Providers
 
         /// <summary>
         /// Fetches all posters from TMDB API, sorts them based on the original language,
-        /// and converts them to ItemImageInfo objects.
+        /// and converts them to RemoteImageInfo objects (which can then be converted to LocalImageInfo).
         /// </summary>
-        private async Task<List<ItemImageInfo>> GetSortedPostersAsImageInfosAsync(string tmdbId, string apiKey, string originalLanguage, CancellationToken cancellationToken)
+        private async Task<List<RemoteImageInfo>> GetSortedPostersAsRemoteImageInfosAsync(string tmdbId, string apiKey, string originalLanguage, CancellationToken cancellationToken)
         {
             var url = $"https://api.themoviedb.org/3/movie/{tmdbId}/images?api_key={apiKey}";
 
@@ -166,8 +194,8 @@ namespace OriginalPoster.Providers
 
             var postersArray = doc.RootElement.GetProperty("posters").EnumerateArray();
 
-            var matchingPosters = new List<ItemImageInfo>();
-            var otherPosters = new List<ItemImageInfo>();
+            var matchingPosters = new List<RemoteImageInfo>();
+            var otherPosters = new List<RemoteImageInfo>();
 
             foreach (var poster in postersArray)
             {
@@ -177,13 +205,12 @@ namespace OriginalPoster.Providers
 
                 var fullImageUrl = $"https://image.tmdb.org/t/p/original{filePath}";
 
-                var imageInfo = new ItemImageInfo
+                var imageInfo = new RemoteImageInfo
                 {
-                    Path = fullImageUrl, // The URL becomes the 'Path' for remote images
-                    Type = ImageType.Primary, // Set the image type
-                    // Height and Width can be set if available in the API response, but often aren't for remote URLs initially
-                    // Height = poster.GetProperty("height").GetInt32();
-                    // Width = poster.GetProperty("width").GetInt32();
+                    ProviderName = Name, // Use the provider's Name property
+                    Url = fullImageUrl,
+                    Type = ImageType.Primary, // Or Primary, depending on desired Emby image type
+                    Language = isoCode // Set the language code for potential future use by Emby
                 };
 
                 if (isoCode == originalLanguage)
@@ -199,7 +226,7 @@ namespace OriginalPoster.Providers
             }
 
             // Combine lists: matching first, then others
-            var sortedList = new List<ItemImageInfo>(matchingPosters);
+            var sortedList = new List<RemoteImageInfo>(matchingPosters);
             sortedList.AddRange(otherPosters);
 
             _logger.Info("Sorted {TotalCount} posters for TMDB ID {TmdbId}: {MatchingCount} matching original language '{OriginalLanguage}', {OtherCount} others.", sortedList.Count, tmdbId, matchingPosters.Count, originalLanguage, otherPosters.Count);
