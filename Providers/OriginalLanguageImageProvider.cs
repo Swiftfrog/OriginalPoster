@@ -17,111 +17,98 @@ using System.IO; // For Stream
 
 namespace OriginalPoster.Providers
 {
-    // --- 移除 IHasOrder 接口 ---
-    public class OriginalLanguageImageProvider : IRemoteImageProvider // Remove , IHasOrder
+    public class OriginalLanguageMetadataProvider : IMetadataProvider<Movie>
     {
-        // Name 属性仍然需要，用于 UI 显示和日志
-        public string Name => "OriginalPoster Provider";
+        public string Name => "OriginalPoster Metadata Provider";
 
-        // --- 移除 Order 属性 ---
-        // public int Order => 999; // Remove this line
-        // ---
+        private readonly ILogger _logger;
+        private readonly IHttpClient _httpClient;
+        // Access the plugin configuration through Plugin.Instance
+        // We might need IServerConfigurationManager to access the config more robustly if Plugin.Instance isn't available here,
+        // but for now, let's try with Plugin.Instance as it worked in IRemoteImageProvider.
 
-
-        // ... (保持 Supports, GetImages, GetSupportedImages, GetImageResponse 方法不变)
-        // ... (保持构造函数注入 ILogManager 和 IHttpClient 不变)
-        // ... (保持所有日志记录不变)
-
-        private readonly ILogger _logger; // Use Emby's ILogger
-        private readonly IHttpClient _httpClient; // Use Emby's IHttpClient
-
-        public OriginalLanguageImageProvider(ILogManager logManager, IHttpClient httpClient)
+        public OriginalLanguageMetadataProvider(ILogManager logManager, IHttpClient httpClient)
         {
             _logger = logManager.GetLogger(GetType().Name);
             _httpClient = httpClient;
-            _logger.Info("OriginalLanguageImageProvider constructor called (No IHasOrder).");
+            _logger.Info("OriginalLanguageMetadataProvider constructor called.");
         }
-
 
         public bool Supports(BaseItem item)
         {
-            _logger.Debug("Supports called for item: {ItemName}, Type: {ItemType}", item.Name, item.GetType().Name);
-            var isSupported = item is Movie movie && movie.HasProviderId(MetadataProviders.Tmdb);
-            _logger.Debug("Supports result for '{ItemName}': {IsSupported}", item.Name, isSupported);
-            return isSupported;
+            // Only support Movie items for this provider
+            return item is Movie;
         }
 
-        public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, LibraryOptions libraryOptions, CancellationToken cancellationToken)
+        public async Task<MetadataResult<Movie>> GetMetadata(ItemLookupInfo info, IDirectoryService directoryService, CancellationToken cancellationToken)
         {
-            if (!(item is Movie movie))
-            {
-                _logger.Debug("Item '{ItemName}' is not a Movie, skipping.", item.Name);
-                return new List<RemoteImageInfo>();
-            }
+            _logger.Debug("GetMetadata called for info.Name: {InfoName}, ProviderIds: {@ProviderIds}", info.Name, info.ProviderIds);
 
-            _logger.Info("GetImages called for movie: {MovieName} (No IHasOrder).", movie.Name);
-
+            // 1. Check if the plugin is enabled via configuration
             if (!Plugin.Instance.Configuration.EnablePlugin)
             {
-                _logger.Debug("Plugin is disabled, skipping.");
-                return new List<RemoteImageInfo>();
+                _logger.Debug("Plugin is disabled, skipping metadata fetch.");
+                return new MetadataResult<Movie>();
             }
 
-            var tmdbId = movie.GetProviderId(MetadataProviders.Tmdb);
-            if (string.IsNullOrEmpty(tmdbId))
+            // 2. Get TMDB ID from the lookup info
+            if (!info.ProviderIds.TryGetValue(MetadataProviders.Tmdb.ToString(), out string tmdbId) || string.IsNullOrEmpty(tmdbId))
             {
-                _logger.Debug("Movie '{MovieName}' does not have a TMDB ID. Skipping.", movie.Name);
-                return new List<RemoteImageInfo>();
+                _logger.Debug("Item lookup info does not have a TMDB ID. Skipping metadata fetch for {InfoName}.", info.Name);
+                return new MetadataResult<Movie>();
             }
 
+            // 3. Get user-configured TMDB API Key
             var apiKey = Plugin.Instance.Configuration.TmdbApiKey;
             if (string.IsNullOrEmpty(apiKey))
             {
-                 _logger.Warn("TMDB API Key is not configured. Skipping for movie: {MovieName}", movie.Name);
-                 return new List<RemoteImageInfo>();
+                 _logger.Warn("TMDB API Key is not configured. Skipping metadata fetch for {InfoName}.", info.Name);
+                 return new MetadataResult<Movie>(); // API Key is required
             }
 
-            _logger.Debug("Processing movie '{MovieName}' with TMDB ID {TmdbId}.", movie.Name, tmdbId);
+            _logger.Debug("Processing metadata for movie '{InfoName}' with TMDB ID {TmdbId}.", info.Name, tmdbId);
+
+            var metadataResult = new MetadataResult<Movie>();
+            metadataResult.Item = new Movie(); // Initialize the item
+            metadataResult.Item.SetProviderId(MetadataProviders.Tmdb, tmdbId); // Set the TMDB ID on the new item
 
             try
             {
+                // 4. Get the original language
                 var originalLanguage = await GetOriginalLanguageAsync(tmdbId, apiKey, cancellationToken);
                 if (string.IsNullOrEmpty(originalLanguage))
                 {
-                    _logger.Warn("Could not determine original language for TMDB ID {TmdbId}. Skipping.", tmdbId);
-                    return new List<RemoteImageInfo>();
+                    _logger.Warn("Could not determine original language for TMDB ID {TmdbId}. Skipping image processing.", tmdbId);
+                    // Still return an empty result, but the metadata part is initialized
+                    return metadataResult;
                 }
 
-                _logger.Info("Original language for TMDB ID {TmdbId} ({MovieName}) is {OriginalLanguage}.", tmdbId, movie.Name, originalLanguage);
+                _logger.Debug("Original language for TMDB ID {TmdbId} is {OriginalLanguage}.", tmdbId, originalLanguage);
 
-                var sortedPosters = await GetSortedPostersAsync(tmdbId, apiKey, originalLanguage, cancellationToken);
+                // 5. Get and sort posters based on original language
+                var sortedImageInfos = await GetSortedPostersAsImageInfosAsync(tmdbId, apiKey, originalLanguage, cancellationToken);
 
-                _logger.Info("Returning {Count} sorted posters for TMDB ID {TmdbId} ({MovieName}).", sortedPosters.Count, tmdbId, movie.Name);
-                return sortedPosters;
+                // 6. Assign the sorted image infos to the metadata result's Images property
+                // This is the key step that injects the prioritized images into the metadata process
+                metadataResult.Images = sortedImageInfos;
+
+                _logger.Info("Assigned {Count} sorted posters to metadata result for TMDB ID {TmdbId}.", sortedImageInfos.Count, tmdbId);
             }
             catch (Exception ex)
             {
-                _logger.ErrorException($"An error occurred while processing movie '{movie.Name}' (TMDB ID {tmdbId}).", ex);
-                return new List<RemoteImageInfo>();
+                _logger.ErrorException($"An error occurred while processing metadata for '{info.Name}' (TMDB ID {tmdbId}).", ex);
+                // Return an empty result on error, but log the issue
+                return new MetadataResult<Movie>();
             }
+
+            return metadataResult;
         }
 
-        public IEnumerable<ImageType> GetSupportedImages(BaseItem item)
-        {
-            _logger.Debug("GetSupportedImages called for item: {ItemName}", item.Name);
-            return new[] { ImageType.Primary };
-        }
+        // --- Helper Methods ---
 
-        public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken cancellationToken)
-        {
-            _logger.Debug("GetImageResponse called for URL: {Url}", url);
-            return Task.FromResult(new HttpResponseInfo());
-        }
-
-        // --- Helper Methods (Keep them as they are, or simplify if needed for this test) ---
-        // For this test, you can keep the full logic or temporarily simplify GetImages to return an empty list
-        // to see if the provider appears in the UI *before* adding back the complex logic.
-        // Let's keep the logic for now, as the test is about whether the provider is recognized *at all*.
+        /// <summary>
+        /// Fetches the original language of a movie from TMDB API.
+        /// </summary>
         private async Task<string?> GetOriginalLanguageAsync(string tmdbId, string apiKey, CancellationToken cancellationToken)
         {
             var url = $"https://api.themoviedb.org/3/movie/{tmdbId}?api_key={apiKey}&language=en-US";
@@ -130,7 +117,7 @@ namespace OriginalPoster.Providers
             {
                 Url = url,
                 CancellationToken = cancellationToken,
-                BufferContent = true
+                BufferContent = true // Buffer the response content
             };
 
             _logger.Debug("Fetching original language from TMDB for ID {TmdbId} using URL: {Url}", tmdbId, url);
@@ -150,10 +137,14 @@ namespace OriginalPoster.Providers
             }
 
             _logger.Warn("Could not find 'original_language' property in TMDB response for ID {TmdbId}.", tmdbId);
-            return null;
+            return null; // Or throw an exception if the property is expected to always exist
         }
 
-        private async Task<List<RemoteImageInfo>> GetSortedPostersAsync(string tmdbId, string apiKey, string originalLanguage, CancellationToken cancellationToken)
+        /// <summary>
+        /// Fetches all posters from TMDB API, sorts them based on the original language,
+        /// and converts them to ItemImageInfo objects.
+        /// </summary>
+        private async Task<List<ItemImageInfo>> GetSortedPostersAsImageInfosAsync(string tmdbId, string apiKey, string originalLanguage, CancellationToken cancellationToken)
         {
             var url = $"https://api.themoviedb.org/3/movie/{tmdbId}/images?api_key={apiKey}";
 
@@ -175,26 +166,24 @@ namespace OriginalPoster.Providers
 
             var postersArray = doc.RootElement.GetProperty("posters").EnumerateArray();
 
-            var matchingPosters = new List<RemoteImageInfo>();
-            var otherPosters = new List<RemoteImageInfo>();
+            var matchingPosters = new List<ItemImageInfo>();
+            var otherPosters = new List<ItemImageInfo>();
 
             foreach (var poster in postersArray)
             {
                 var isoCode = poster.GetProperty("iso_639_1").GetString(); // Can be null
                 var filePath = poster.GetProperty("file_path").GetString();
-                if (string.IsNullOrEmpty(filePath))
-                {
-                    _logger.Debug("Skipping poster with empty file_path for TMDB ID {TmdbId}.", tmdbId);
-                    continue;
-                }
+                if (string.IsNullOrEmpty(filePath)) continue; // Skip posters without a file path
 
                 var fullImageUrl = $"https://image.tmdb.org/t/p/original{filePath}";
-                var imageInfo = new RemoteImageInfo
+
+                var imageInfo = new ItemImageInfo
                 {
-                    ProviderName = Name,
-                    Url = fullImageUrl,
-                    Type = ImageType.Primary,
-                    Language = isoCode
+                    Path = fullImageUrl, // The URL becomes the 'Path' for remote images
+                    Type = ImageType.Primary, // Set the image type
+                    // Height and Width can be set if available in the API response, but often aren't for remote URLs initially
+                    // Height = poster.GetProperty("height").GetInt32();
+                    // Width = poster.GetProperty("width").GetInt32();
                 };
 
                 if (isoCode == originalLanguage)
@@ -209,7 +198,8 @@ namespace OriginalPoster.Providers
                 }
             }
 
-            var sortedList = new List<RemoteImageInfo>(matchingPosters);
+            // Combine lists: matching first, then others
+            var sortedList = new List<ItemImageInfo>(matchingPosters);
             sortedList.AddRange(otherPosters);
 
             _logger.Info("Sorted {TotalCount} posters for TMDB ID {TmdbId}: {MatchingCount} matching original language '{OriginalLanguage}', {OtherCount} others.", sortedList.Count, tmdbId, matchingPosters.Count, originalLanguage, otherPosters.Count);
