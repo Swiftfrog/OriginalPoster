@@ -6,6 +6,7 @@ using MediaBrowser.Model.Entities; // ImageType
 using MediaBrowser.Model.Logging; // ILogger
 using MediaBrowser.Model.Providers; // RemoteImageInfo
 using System.Collections.Generic;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using MediaBrowser.Common.Net; // For IHttpClient, HttpRequestOptions, HttpResponseInfo
