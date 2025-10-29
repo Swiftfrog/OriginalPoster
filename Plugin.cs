@@ -2,13 +2,13 @@ using MediaBrowser.Controller; // IServerApplicationHost
 using MediaBrowser.Controller.Plugins; // BasePluginSimpleUI
 using MediaBrowser.Common.Plugins;
 using System;
-using OriginalPoster.Configuration;
+using OriginalPoster.Config;
 
 namespace OriginalPoster;
 
-public class Plugin : BasePluginSimpleUI<PluginConfiguration>
+public class Plugin : BasePluginSimpleUI<OriginalPosterConfig>
 {
-    public override string Name => "Original Language Poster Provider";
+    public override string Name => "OriginalPoster";
     public override string Description => "优先显示影视作品原生语言的海报。";
     public override Guid Id => new("09872246-4676-EBD7-E81C-9B95E12A832B");
 
@@ -23,5 +23,5 @@ public class Plugin : BasePluginSimpleUI<PluginConfiguration>
     public static Plugin Instance { get; private set; } = null!;
 
     // 便捷属性：从插件内部获取当前配置
-    public PluginConfiguration Configuration => GetOptions();
+    public OriginalPosterConfig Configuration => GetOptions();
 }

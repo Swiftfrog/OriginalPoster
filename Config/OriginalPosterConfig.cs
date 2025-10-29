@@ -1,12 +1,12 @@
 using Emby.Web.GenericEdit;
 using System.ComponentModel;
 
-namespace OriginalPoster.Configuration;
+namespace OriginalPoster.Config;
 
-public class PluginConfiguration : EditableOptionsBase
+public class OriginalPosterConfig : EditableOptionsBase
 {
     // 必须实现的抽象属性：配置页面标题
-    public override string EditorTitle => "原生语言海报优先设置";
+    public override string EditorTitle => "OriginalPoster Settings";
 
     // 用户可配置项
     [DisplayName("启用插件")]
