@@ -42,25 +42,21 @@ namespace OriginalPoster.Providers
 
         public bool Supports(BaseItem item)
         {
+            // 详细日志：记录每次调用
+            var itemType = item?.GetType().Name ?? "null";
+            var itemName = item?.Name ?? "null";
             var isMovie = item is Movie;
-            var hasTmdbId = isMovie && item.HasProviderId(MetadataProviders.Tmdb);
+            var hasTmdbId = item != null && item.ProviderIds != null && item.ProviderIds.ContainsKey("Tmdb");
             
-            // 强制日志，每次都输出
-            _logger.Info("═══ Supports called for: {0} (IsMovie: {1}, HasTmdb: {2}) ═══", 
-                item?.Name ?? "null", 
-                isMovie, 
-                hasTmdbId);
+            _logger.Info("═══ Supports 调用详情 ═══");
+            _logger.Info("  项目名称: {0}", itemName);
+            _logger.Info("  项目类型: {0}", itemType);
+            _logger.Info("  是否 Movie: {0}", isMovie);
+            _logger.Info("  有 TMDB ID: {0}", hasTmdbId);
+            _logger.Info("  返回结果: {0}", isMovie && hasTmdbId);
+            _logger.Info("═══════════════════════");
             
-            if (hasTmdbId)
-            {
-                _logger.Info("→→→ Supports returning TRUE for: {0}", item.Name);
-            }
-            else
-            {
-                _logger.Debug("→→→ Supports returning FALSE for: {0}", item?.Name ?? "null");
-            }
-            
-            return hasTmdbId;
+            return isMovie && hasTmdbId;
         }
 
         public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, LibraryOptions libraryOptions, CancellationToken cancellationToken)
