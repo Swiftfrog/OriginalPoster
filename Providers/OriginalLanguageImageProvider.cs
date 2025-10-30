@@ -160,18 +160,9 @@ namespace OriginalPoster.Providers
         /// 声明此 Provider 支持通过 TMDB ID 进行搜索
         /// 这是 Emby 4.9.x 的新要求
         /// </summary>
-        public IEnumerable<ExternalIdInfo> GetSupportedExternalIdentifiers()
+        public string[] GetSupportedExternalIdentifiers()
         {
-            return new[]
-            {
-                new ExternalIdInfo
-                {
-                    Name = "TMDb",
-                    Key = "Tmdb",
-                    Type = ExternalIdMediaType.Movie,
-                    UrlFormatString = "https://www.themoviedb.org/movie/{0}"
-                }
-            };
+            return new[] { "Tmdb" };
         }
 
         // ============ Helper Methods ============
