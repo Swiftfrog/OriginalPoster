@@ -18,9 +18,8 @@ namespace OriginalPoster.Providers
 {
     /// <summary>
     /// 原生语言海报优先 Provider
-    /// 注意：这个类会被 Emby 自动发现和实例化
     /// </summary>
-    public class OriginalLanguageImageProvider : IRemoteImageProvider, IHasOrder
+    public class OriginalLanguageImageProvider : IRemoteImageProvider, IHasOrder, IHasSupportedExternalIdentifiers
     {
         public string Name => "OriginalPoster";
         
@@ -153,6 +152,26 @@ namespace OriginalPoster.Providers
         {
             // Emby 会自己下载图片
             return Task.FromResult(new HttpResponseInfo());
+        }
+
+        // ============ IHasSupportedExternalIdentifiers 实现 ============
+        
+        /// <summary>
+        /// 声明此 Provider 支持通过 TMDB ID 进行搜索
+        /// 这是 Emby 4.9.x 的新要求
+        /// </summary>
+        public IEnumerable<ExternalIdInfo> GetSupportedExternalIdentifiers()
+        {
+            return new[]
+            {
+                new ExternalIdInfo
+                {
+                    Name = "TMDb",
+                    Key = "Tmdb",
+                    Type = ExternalIdMediaType.Movie,
+                    UrlFormatString = "https://www.themoviedb.org/movie/{0}"
+                }
+            };
         }
 
         // ============ Helper Methods ============
