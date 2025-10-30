@@ -46,9 +46,19 @@ namespace OriginalPoster.Providers
             var isMovie = item is Movie;
             var hasTmdbId = isMovie && item.HasProviderId(MetadataProviders.Tmdb);
             
+            // 强制日志，每次都输出
+            _logger.Info("═══ Supports called for: {0} (IsMovie: {1}, HasTmdb: {2}) ═══", 
+                item?.Name ?? "null", 
+                isMovie, 
+                hasTmdbId);
+            
             if (hasTmdbId)
             {
-                _logger.Debug("Supports = TRUE for movie: {0}", item.Name);
+                _logger.Info("→→→ Supports returning TRUE for: {0}", item.Name);
+            }
+            else
+            {
+                _logger.Debug("→→→ Supports returning FALSE for: {0}", item?.Name ?? "null");
             }
             
             return hasTmdbId;
