@@ -75,25 +75,36 @@ namespace OriginalPoster
                 _logger.Info("───────────────────────────────────────────────────────────────");
                 _logger.Info("Checking registered Image Providers...");
                 
-                var allProviders = _providerManager.GetImageProviders(null).ToList();
-                _logger.Info("Total registered providers: {0}", allProviders.Count);
-                
-                foreach (var provider in allProviders)
+                var allProviders = _providerManager.ImageProviders;
+                if (allProviders != null)
                 {
-                    var hasOrder = provider as IHasOrder;
-                    var order = hasOrder?.Order ?? 0;
-                    _logger.Info("  - {0} (Order: {1})", provider.Name, order);
-                }
+                    _logger.Info("Total registered providers: {0}", allProviders.Length);
+                    
+                    foreach (var provider in allProviders)
+                    {
+                        var hasOrder = provider as IHasOrder;
+                        var order = hasOrder?.Order ?? 0;
+                        _logger.Info("  - {0} (Order: {1})", provider.Name, order);
+                    }
 
-                var ourProvider = allProviders.FirstOrDefault(p => p.Name == "OriginalPoster");
-                if (ourProvider != null)
-                {
-                    _logger.Info("✓ OriginalPoster IS registered!");
+                    var ourProvider = allProviders.FirstOrDefault(p => p.Name == "OriginalPoster");
+                    if (ourProvider != null)
+                    {
+                        _logger.Info("✓✓✓ OriginalPoster IS registered! ✓✓✓");
+                    }
+                    else
+                    {
+                        _logger.Warn("⚠️⚠️⚠️ OriginalPoster NOT found in registered providers!");
+                        _logger.Warn("This means Emby hasn't discovered our Provider class.");
+                        _logger.Warn("Possible reasons:");
+                        _logger.Warn("  1. Provider class not in correct namespace");
+                        _logger.Warn("  2. Missing assembly scanning");
+                        _logger.Warn("  3. Emby version incompatibility");
+                    }
                 }
                 else
                 {
-                    _logger.Warn("⚠️  OriginalPoster NOT found in registered providers!");
-                    _logger.Warn("This is the problem - Emby hasn't discovered our Provider");
+                    _logger.Warn("ImageProviders property is NULL!");
                 }
             }
             catch (Exception ex)
