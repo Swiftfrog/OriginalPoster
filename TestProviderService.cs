@@ -66,7 +66,10 @@ namespace OriginalPoster
                 }
 
                 _logger.Info("Found movie: {0}", movie.Name);
-                _logger.Info("Has TMDB ID: {0}", movie.HasProviderId("Tmdb"));
+                
+                var tmdbId = movie.GetProviderId("Tmdb");
+                var hasTmdbId = !string.IsNullOrEmpty(tmdbId);
+                _logger.Info("TMDB ID: {0}", hasTmdbId ? tmdbId : "None");
 
                 // 获取我们的 Provider
                 var allProviders = _providerManager.ImageProviders;
