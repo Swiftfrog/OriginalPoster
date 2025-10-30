@@ -2,7 +2,9 @@ using MediaBrowser.Controller.Plugins;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Providers;
+using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
+using MediaBrowser.Model.Entities;
 using OriginalPoster.Providers;
 using System;
 using System.Linq;
@@ -147,11 +149,16 @@ namespace OriginalPoster
             try
             {
                 // 创建一个测试用的 Movie 对象（仅用于检查）
-                var testMovie = new MediaBrowser.Controller.Entities.Movies.Movie
+                var testMovie = new Movie
                 {
                     Name = "Test Movie"
                 };
-                testMovie.SetProviderId(MetadataProviders.Tmdb, "12345");
+                
+                // 使用扩展方法设置 Provider ID
+                testMovie.ProviderIds = new System.Collections.Generic.Dictionary<string, string>
+                {
+                    { "Tmdb", "12345" }
+                };
                 
                 var testLibraryOptions = _providerManager.GetDefaultLibraryOptions("movies");
                 
