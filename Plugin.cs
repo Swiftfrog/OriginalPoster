@@ -1,20 +1,16 @@
 using MediaBrowser.Controller;
-using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Plugins;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Logging;
 using System;
 using OriginalPoster.Config;
 
-// 1. 添加这些 using 语句
-using Microsoft.Extensions.DependencyInjection;
-using MediaBrowser.Controller.Providers;
-using OriginalPoster.Providers; // 确保这是你的 OriginalLanguageImageProvider 所在的命名空间
-
 namespace OriginalPoster
 {
-    // 2. 在类定义中添加 , IHasServices
-    public class Plugin : BasePluginSimpleUI<OriginalPosterConfig>, IHasServices
+    /// <summary>
+    /// 插件入口点，负责加载配置 UI
+    /// </summary>
+    public class Plugin : BasePluginSimpleUI<OriginalPosterConfig>
     {
         public override string Name => "OriginalPoster";
         public override string Description => "优先显示影视作品原生语言的海报。";
@@ -22,6 +18,7 @@ namespace OriginalPoster
 
         private readonly ILogger _logger;
 
+        // 构造函数：BasePluginSimpleUI 要求传入 IApplicationHost
         public Plugin(IServerApplicationHost applicationHost, ILogManager logManager)
             : base(applicationHost)
         {
@@ -30,22 +27,10 @@ namespace OriginalPoster
             _logger.Info("Plugin constructor called. Instance created.");
         }
 
+        // 单例访问点（便于其他类获取配置）
         public static Plugin Instance { get; private set; }
 
+        // 便捷属性：从插件内部获取当前配置
         public OriginalPosterConfig PluginConfiguration => GetOptions();
-
-        // 3. 实现 IHasServices 接口，添加这个方法
-        public System.Collections.Generic.IEnumerable<ServiceDescriptor> GetServices()
-        {
-            // 注册你的 Provider 为 Singleton (单例)
-            // 假设你的类名是 OriginalLanguageImageProvider
-            yield return new ServiceDescriptor(typeof(OriginalLanguageImageProvider), typeof(OriginalLanguageImageProvider), ServiceLifetime.Singleton);
-            
-            // 告诉 Emby，这个类是 IImageProvider 的一个实现
-            yield return new ServiceDescriptor(typeof(IImageProvider), p => p.GetRequiredService<OriginalLanguageImageProvider>(), ServiceLifetime.Singleton);
-            
-            // 告诉 Emby，这个类也是 IRemoteImageProvider 的一个实现
-            yield return new ServiceDescriptor(typeof(IRemoteImageProvider), p => p.GetRequiredService<OriginalLanguageImageProvider>(), ServiceLifetime.Singleton);
-        }
     }
 }
