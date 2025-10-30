@@ -68,6 +68,17 @@ namespace OriginalPoster.Providers
         {
             _logger.Info("╔═══════════════════════════════════════════════════════════");
             _logger.Info("║ GetImages called for: {0}", item.Name);
+            _logger.Info("║ LibraryOptions present: {0}", libraryOptions != null);
+            
+            // 诊断：检查 LibraryOptions 中的 Provider 设置
+            if (libraryOptions != null)
+            {
+                _logger.Info("║ DisabledImageFetchers: {0}", 
+                    libraryOptions.DisabledImageFetchers != null ? 
+                    string.Join(", ", libraryOptions.DisabledImageFetchers) : 
+                    "null");
+            }
+            
             _logger.Info("╚═══════════════════════════════════════════════════════════");
 
             var movie = item as Movie;

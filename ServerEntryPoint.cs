@@ -138,6 +138,35 @@ namespace OriginalPoster
             }
 
             _logger.Info("═══════════════════════════════════════════════════════════════");
+            // 在 ServerEntryPoint.cs 的 Run() 方法最后添加这段诊断代码
+
+            _logger.Info("───────────────────────────────────────────────────────────────");
+            _logger.Info("Checking library options for OriginalPoster...");
+            
+            try
+            {
+                // 获取所有媒体库
+                var libraryManager = _providerManager as dynamic; // 尝试获取 LibraryManager
+                
+                // 注意：这段代码可能需要调整，因为我们需要访问 LibraryManager
+                // 如果编译失败，请告诉我，我会提供替代方案
+                
+                _logger.Info("If you see 'Running MovieDbImageProvider' but NOT 'Running OriginalLanguageImageProvider'");
+                _logger.Info("in the refresh logs, it means the provider is disabled in library settings.");
+                _logger.Info("");
+                _logger.Info("TO FIX:");
+                _logger.Info("1. Go to Emby Dashboard → Libraries");
+                _logger.Info("2. Click the three dots on your movie library → Manage Library");  
+                _logger.Info("3. Go to 'Images' or 'Fetchers' tab");
+                _logger.Info("4. Make sure 'OriginalPoster' is checked/enabled");
+                _logger.Info("5. Save and refresh metadata again");
+            }
+            catch (Exception ex)
+            {
+                _logger.ErrorException("Error checking library options", ex);
+            }
+            
+            _logger.Info("═══════════════════════════════════════════════════════════════");
         }
 
         public void Dispose()
