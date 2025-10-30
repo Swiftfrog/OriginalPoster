@@ -46,12 +46,21 @@ namespace OriginalPoster.Providers
             // 详细日志：记录每次调用
             var itemType = item?.GetType().Name ?? "null";
             var itemName = item?.Name ?? "null";
-            var isMovie = item is Movie;
+            
+            // ↓↓↓ 添加你建议的增强日志 ↓↓↓
+            string providerKeys = "null";
+            if (item?.ProviderIds != null)
+            {
+                providerKeys = string.Join(", ", item.ProviderIds.Keys);
+            }
+            
             var hasTmdbId = item != null && item.ProviderIds != null && item.ProviderIds.ContainsKey("Tmdb");
+            var isMovie = item is Movie;
             
             _logger.Info("═══ Supports 调用详情 ═══");
             _logger.Info("  项目名称: {0}", itemName);
             _logger.Info("  项目类型: {0}", itemType);
+            _logger.Info("  包含的 Provider ID 键: {0}", providerKeys); // <-- 新增
             _logger.Info("  是否 Movie: {0}", isMovie);
             _logger.Info("  有 TMDB ID: {0}", hasTmdbId);
             _logger.Info("  返回结果: {0}", isMovie && hasTmdbId);
@@ -59,6 +68,25 @@ namespace OriginalPoster.Providers
             
             return isMovie && hasTmdbId;
         }
+
+//        public bool Supports(BaseItem item)
+//        {
+//            // 详细日志：记录每次调用
+//            var itemType = item?.GetType().Name ?? "null";
+//            var itemName = item?.Name ?? "null";
+//            var isMovie = item is Movie;
+//            var hasTmdbId = item != null && item.ProviderIds != null && item.ProviderIds.ContainsKey("Tmdb");
+//            
+//            _logger.Info("═══ Supports 调用详情 ═══");
+//            _logger.Info("  项目名称: {0}", itemName);
+//            _logger.Info("  项目类型: {0}", itemType);
+//            _logger.Info("  是否 Movie: {0}", isMovie);
+//            _logger.Info("  有 TMDB ID: {0}", hasTmdbId);
+//            _logger.Info("  返回结果: {0}", isMovie && hasTmdbId);
+//            _logger.Info("═══════════════════════");
+//            
+//            return isMovie && hasTmdbId;
+//        }
 
         public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, LibraryOptions libraryOptions, CancellationToken cancellationToken)
         {
