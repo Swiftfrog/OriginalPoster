@@ -1,20 +1,18 @@
-using MediaBrowser.Controller.Configuration;
-using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Logging;
-using MediaBrowser.Model.Serialization;
 using MediaBrowser.Model.Services;
 using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using OriginalPoster.Providers;
 
 namespace OriginalPoster
 {
     /// <summary>
-    /// 测试用的 API 服务，用于直接触发 Provider
+    /// 测试用的 API 服务
     /// 访问: http://your-emby:8096/emby/OriginalPoster/Test?movieId=123
     /// </summary>
     [Route("/OriginalPoster/Test", "GET", Summary = "Test OriginalPoster Provider")]
@@ -28,7 +26,6 @@ namespace OriginalPoster
     {
         public string Message { get; set; }
         public int PosterCount { get; set; }
-        public string OriginalLanguage { get; set; }
     }
 
     public class TestProviderService : IService
@@ -44,60 +41,85 @@ namespace OriginalPoster
         {
             _libraryManager = libraryManager;
             _providerManager = providerManager;
-            _logger = logManager.GetLogger(GetType().Name);
+            _logger = logManager.GetLogger("TestProviderService");
         }
 
         public async Task<object> Get(TestProviderRequest request)
         {
-            _logger.Info("═══════════════════════════════════════════════════════════");
-            _logger.Info("Test API called for movie ID: {0}", request.MovieId);
+            _logger.Info("╔═══════════════════════════════════════════════════════════");
+            _logger.Info("║ TEST API CALLED - Movie ID: {0}", request.MovieId);
+            _logger.Info("╚═══════════════════════════════════════════════════════════");
 
             try
             {
                 // 获取电影
-                var movie = _libraryManager.GetItemById(request.MovieId) as Movie;
+                var item = _libraryManager.GetItemById(request.MovieId);
+                if (item == null)
+                {
+                    _logger.Warn("Item not found");
+                    return new TestProviderResponse { Message = "Item not found" };
+                }
+
+                var movie = item as Movie;
                 if (movie == null)
                 {
-                    _logger.Warn("Movie not found or not a Movie type");
-                    return new TestProviderResponse
-                    {
-                        Message = "Movie not found or invalid type"
-                    };
+                    _logger.Warn("Item is not a Movie");
+                    return new TestProviderResponse { Message = "Not a Movie type" };
                 }
 
                 _logger.Info("Found movie: {0}", movie.Name);
-                
-                var tmdbId = movie.GetProviderId("Tmdb");
-                var hasTmdbId = !string.IsNullOrEmpty(tmdbId);
-                _logger.Info("TMDB ID: {0}", hasTmdbId ? tmdbId : "None");
 
                 // 获取我们的 Provider
                 var allProviders = _providerManager.ImageProviders;
+                _logger.Info("Total providers: {0}", allProviders.Length);
+
                 var ourProvider = allProviders.FirstOrDefault(p => p.Name == "OriginalPoster") 
-                    as Providers.OriginalLanguageImageProvider;
+                    as OriginalLanguageImageProvider;
 
                 if (ourProvider == null)
                 {
-                    _logger.Error("OriginalPoster provider not found!");
-                    return new TestProviderResponse
-                    {
-                        Message = "OriginalPoster provider not found in ImageProviders list"
+                    _logger.Error("OriginalPoster provider NOT FOUND in ImageProviders!");
+                    return new TestProviderResponse 
+                    { 
+                        Message = "Provider not found" 
                     };
                 }
 
                 _logger.Info("Found OriginalPoster provider");
 
                 // 检查是否支持
-                if (!ourProvider.Supports(movie))
+                var supports = ourProvider.Supports(movie);
+                _logger.Info("Provider.Supports(movie) = {0}", supports);
+
+                if (!supports)
                 {
-                    _logger.Warn("Provider.Supports returned false");
-                    return new TestProviderResponse
-                    {
-                        Message = "Provider does not support this movie (no TMDB ID?)"
+                    return new TestProviderResponse 
+                    { 
+                        Message = "Provider.Supports returned false (check logs for reason)" 
                     };
                 }
 
-                _logger.Info("Provider.Supports = true, calling GetImages...");
+                // 获取配置
+                if (Plugin.Instance?.PluginConfiguration == null)
+                {
+                    _logger.Error("Plugin configuration not available");
+                    return new TestProviderResponse 
+                    { 
+                        Message = "Plugin configuration not available" 
+                    };
+                }
+
+                var apiKey = Plugin.Instance.PluginConfiguration.TmdbApiKey;
+                if (string.IsNullOrEmpty(apiKey))
+                {
+                    _logger.Error("TMDB API Key not configured!");
+                    return new TestProviderResponse 
+                    { 
+                        Message = "TMDB API Key not configured in plugin settings" 
+                    };
+                }
+
+                _logger.Info("Calling GetImages...");
 
                 // 获取默认的 LibraryOptions
                 var libraryOptions = _providerManager.GetDefaultLibraryOptions("movies");
@@ -106,21 +128,17 @@ namespace OriginalPoster
                 var images = await ourProvider.GetImages(movie, libraryOptions, CancellationToken.None);
                 var imageList = images.ToList();
 
-                _logger.Info("GetImages returned {0} images", imageList.Count);
-
-                var originalLangImage = imageList.FirstOrDefault();
-                var originalLang = originalLangImage?.Language ?? "unknown";
+                _logger.Info("SUCCESS! GetImages returned {0} images", imageList.Count);
 
                 return new TestProviderResponse
                 {
-                    Message = $"Success! Provider returned {imageList.Count} posters for '{movie.Name}'",
-                    PosterCount = imageList.Count,
-                    OriginalLanguage = originalLang
+                    Message = $"SUCCESS! Retrieved {imageList.Count} posters for '{movie.Name}'",
+                    PosterCount = imageList.Count
                 };
             }
             catch (Exception ex)
             {
-                _logger.ErrorException("Error in test API", ex);
+                _logger.ErrorException("TEST API ERROR", ex);
                 return new TestProviderResponse
                 {
                     Message = $"Error: {ex.Message}"
