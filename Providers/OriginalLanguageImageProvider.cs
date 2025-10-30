@@ -23,8 +23,9 @@ namespace OriginalPoster.Providers
     {
         public string Name => "OriginalPoster";
         
-        // 设置为负数，确保在 TMDB 之前执行
-        public int Order => -100;
+        // 重要：使用非负数！负数可能被 UI 过滤
+        // 0 = 最高优先级（与 TMDB 相同）
+        public int Order => 0;
 
         private readonly ILogger _logger;
         private readonly IHttpClient _httpClient;
