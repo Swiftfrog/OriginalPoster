@@ -151,14 +151,12 @@ namespace OriginalPoster
                 // 创建一个测试用的 Movie 对象（仅用于检查）
                 var testMovie = new Movie
                 {
-                    Name = "Test Movie"
+                    Name = "Test Movie",
+                    ProviderIds = new ProviderIdDictionary()
                 };
                 
-                // 使用扩展方法设置 Provider ID
-                testMovie.ProviderIds = new System.Collections.Generic.Dictionary<string, string>
-                {
-                    { "Tmdb", "12345" }
-                };
+                // 添加 TMDB ID
+                testMovie.ProviderIds.Add("Tmdb", "12345");
                 
                 var testLibraryOptions = _providerManager.GetDefaultLibraryOptions("movies");
                 
