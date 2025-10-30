@@ -16,21 +16,29 @@ using System.Linq;
 
 namespace OriginalPoster.Providers
 {
+    /// <summary>
+    /// 原生语言海报优先 Provider
+    /// 注意：这个类会被 Emby 自动发现和实例化
+    /// </summary>
     public class OriginalLanguageImageProvider : IRemoteImageProvider, IHasOrder
     {
         public string Name => "OriginalPoster";
         
-        // 关键：设置为负数，确保在 TMDB 之前执行
+        // 设置为负数，确保在 TMDB 之前执行
         public int Order => -100;
 
         private readonly ILogger _logger;
         private readonly IHttpClient _httpClient;
 
+        // Emby 会通过依赖注入自动调用这个构造函数
         public OriginalLanguageImageProvider(ILogManager logManager, IHttpClient httpClient)
         {
             _logger = logManager.GetLogger(GetType().Name);
             _httpClient = httpClient;
-            _logger.Info("=== OriginalLanguageImageProvider constructed ===");
+            _logger.Info("╔═══════════════════════════════════════════════════════════");
+            _logger.Info("║ OriginalLanguageImageProvider initialized");
+            _logger.Info("║ Name: {0}, Order: {1}", Name, Order);
+            _logger.Info("╚═══════════════════════════════════════════════════════════");
         }
 
         public bool Supports(BaseItem item)
@@ -40,9 +48,7 @@ namespace OriginalPoster.Providers
             
             if (hasTmdbId)
             {
-                _logger.Info("Supports TRUE for: {0} (TMDB ID: {1})", 
-                    item.Name, 
-                    item.GetProviderId(MetadataProviders.Tmdb));
+                _logger.Debug("Supports = TRUE for movie: {0}", item.Name);
             }
             
             return hasTmdbId;
@@ -50,55 +56,52 @@ namespace OriginalPoster.Providers
 
         public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, LibraryOptions libraryOptions, CancellationToken cancellationToken)
         {
-            _logger.Info("╔════════════════════════════════════════════════════════════");
-            _logger.Info("║ GetImages CALLED for: {0}", item.Name);
-            _logger.Info("╚════════════════════════════════════════════════════════════");
+            _logger.Info("╔═══════════════════════════════════════════════════════════");
+            _logger.Info("║ GetImages called for: {0}", item.Name);
+            _logger.Info("╚═══════════════════════════════════════════════════════════");
 
             var movie = item as Movie;
             if (movie == null)
             {
-                _logger.Warn("Not a Movie, returning empty list.");
+                _logger.Warn("Item is not a Movie.");
                 return new List<RemoteImageInfo>();
             }
 
             // 检查插件配置
-            if (Plugin.Instance == null)
+            if (Plugin.Instance?.PluginConfiguration == null)
             {
-                _logger.Error("Plugin.Instance is NULL!");
+                _logger.Error("Plugin configuration not available!");
                 return new List<RemoteImageInfo>();
             }
 
             var config = Plugin.Instance.PluginConfiguration;
-            if (config == null)
-            {
-                _logger.Error("Configuration is NULL!");
-                return new List<RemoteImageInfo>();
-            }
-
-            _logger.Info("Plugin Enabled: {0}", config.EnablePlugin);
-            _logger.Info("API Key Configured: {0}", !string.IsNullOrEmpty(config.TmdbApiKey));
+            
+            _logger.Info("Config - Enabled: {0}, API Key: {1}", 
+                config.EnablePlugin, 
+                !string.IsNullOrEmpty(config.TmdbApiKey) ? "Set" : "NOT SET");
 
             if (!config.EnablePlugin)
             {
-                _logger.Info("Plugin is disabled, returning empty list.");
+                _logger.Info("Plugin is disabled in settings.");
                 return new List<RemoteImageInfo>();
             }
 
             var tmdbId = movie.GetProviderId(MetadataProviders.Tmdb);
             if (string.IsNullOrEmpty(tmdbId))
             {
-                _logger.Warn("No TMDB ID for movie: {0}", movie.Name);
+                _logger.Warn("Movie has no TMDB ID.");
                 return new List<RemoteImageInfo>();
             }
 
             var apiKey = config.TmdbApiKey;
             if (string.IsNullOrEmpty(apiKey))
             {
-                _logger.Error("TMDB API Key not configured! Please set it in plugin settings.");
+                _logger.Error("TMDB API Key not configured! Please configure in plugin settings.");
+                _logger.Error("Go to: Emby Console → Plugins → OriginalPoster Settings");
                 return new List<RemoteImageInfo>();
             }
 
-            _logger.Info("Processing movie: {0}, TMDB ID: {1}", movie.Name, tmdbId);
+            _logger.Info("Processing: {0} (TMDB: {1})", movie.Name, tmdbId);
 
             try
             {
@@ -106,27 +109,27 @@ namespace OriginalPoster.Providers
                 var originalLanguage = await GetOriginalLanguageAsync(tmdbId, apiKey, cancellationToken);
                 if (string.IsNullOrEmpty(originalLanguage))
                 {
-                    _logger.Warn("Could not determine original language for TMDB ID: {0}", tmdbId);
+                    _logger.Warn("Could not determine original language.");
                     return new List<RemoteImageInfo>();
                 }
 
-                _logger.Info("Original language detected: {0}", originalLanguage);
+                _logger.Info("Original language: {0}", originalLanguage);
 
                 // 2. 获取并排序海报
                 var sortedPosters = await GetSortedPostersAsync(tmdbId, apiKey, originalLanguage, cancellationToken);
 
                 var originalCount = sortedPosters.Count(p => p.Language == originalLanguage);
-                _logger.Info("SUCCESS: Returning {0} total posters ({1} original language, {2} others)", 
+                _logger.Info("SUCCESS: Returning {0} posters ({1} in {2}, {3} others)", 
                     sortedPosters.Count, 
                     originalCount,
+                    originalLanguage,
                     sortedPosters.Count - originalCount);
 
-                // 即使只有1张海报也返回，让用户看到我们的 Provider 在工作
                 return sortedPosters;
             }
             catch (Exception ex)
             {
-                _logger.ErrorException($"ERROR processing movie '{movie.Name}' (TMDB: {tmdbId})", ex);
+                _logger.ErrorException($"Error processing movie: {movie.Name}", ex);
                 return new List<RemoteImageInfo>();
             }
         }
@@ -138,10 +141,11 @@ namespace OriginalPoster.Providers
 
         public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken cancellationToken)
         {
-            _logger.Debug("GetImageResponse called for URL: {0}", url);
-            // Emby 会自己下载图片，这里返回空实现
+            // Emby 会自己下载图片
             return Task.FromResult(new HttpResponseInfo());
         }
+
+        // ============ Helper Methods ============
 
         private async Task<string> GetOriginalLanguageAsync(string tmdbId, string apiKey, CancellationToken cancellationToken)
         {
@@ -155,7 +159,7 @@ namespace OriginalPoster.Providers
                 EnableHttpCompression = true
             };
 
-            _logger.Debug("Fetching movie details from: {0}", url.Replace(apiKey, "***"));
+            _logger.Debug("Fetching movie info from TMDB...");
 
             try
             {
@@ -167,17 +171,15 @@ namespace OriginalPoster.Providers
                 using var doc = JsonDocument.Parse(jsonString);
                 if (doc.RootElement.TryGetProperty("original_language", out var langElement))
                 {
-                    var lang = langElement.GetString();
-                    _logger.Debug("Found original language: {0}", lang);
-                    return lang;
+                    return langElement.GetString();
                 }
 
-                _logger.Warn("No 'original_language' property in TMDB response");
+                _logger.Warn("No 'original_language' in TMDB response");
                 return null;
             }
             catch (Exception ex)
             {
-                _logger.ErrorException($"Failed to fetch original language for TMDB ID: {tmdbId}", ex);
+                _logger.ErrorException($"Failed to fetch movie info for TMDB ID: {tmdbId}", ex);
                 return null;
             }
         }
@@ -194,7 +196,7 @@ namespace OriginalPoster.Providers
                 EnableHttpCompression = true
             };
 
-            _logger.Debug("Fetching posters from: {0}", url.Replace(apiKey, "***"));
+            _logger.Debug("Fetching posters from TMDB...");
 
             try
             {
@@ -207,7 +209,7 @@ namespace OriginalPoster.Providers
                 
                 if (!doc.RootElement.TryGetProperty("posters", out var postersProperty))
                 {
-                    _logger.Warn("No 'posters' property in TMDB images response");
+                    _logger.Warn("No 'posters' in TMDB response");
                     return new List<RemoteImageInfo>();
                 }
 
@@ -241,12 +243,11 @@ namespace OriginalPoster.Providers
                     if (isoCode == originalLanguage)
                     {
                         matchingPosters.Add(imageInfo);
-                        _logger.Debug("✓ Original language poster: {0}", filePath);
+                        _logger.Debug("✓ Original language: {0}", filePath);
                     }
                     else
                     {
                         otherPosters.Add(imageInfo);
-                        _logger.Debug("  Other language poster ({0}): {1}", isoCode ?? "null", filePath);
                     }
                 }
 
@@ -254,8 +255,7 @@ namespace OriginalPoster.Providers
                 var sortedList = new List<RemoteImageInfo>(matchingPosters);
                 sortedList.AddRange(otherPosters);
 
-                _logger.Info("Sorted {0} posters: {1} original language, {2} others", 
-                    sortedList.Count, 
+                _logger.Info("Found {0} original language posters, {1} others", 
                     matchingPosters.Count, 
                     otherPosters.Count);
 
