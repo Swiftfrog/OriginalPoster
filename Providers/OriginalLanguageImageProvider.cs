@@ -1,292 +1,198 @@
-using MediaBrowser.Controller.Entities;
-using MediaBrowser.Controller.Entities.Movies;
-using MediaBrowser.Controller.Providers;
-using MediaBrowser.Model.Configuration;
-using MediaBrowser.Model.Entities;
+using MediaBrowser.Controller.Plugins;
 using MediaBrowser.Model.Logging;
-using MediaBrowser.Model.Providers;
-using System.Collections.Generic;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using MediaBrowser.Common.Net;
-using System.Text.Json;
-using System.IO;
+using MediaBrowser.Controller.Providers;
+using OriginalPoster.Providers;
+using System;
 using System.Linq;
 
-namespace OriginalPoster.Providers
+namespace OriginalPoster
 {
-    /// <summary>
-    /// 原生语言海报优先 Provider
-    /// 注意：这个类会被 Emby 自动发现和实例化
-    /// </summary>
-    public class OriginalLanguageImageProvider : IRemoteImageProvider, IHasOrder
+    public class ServerEntryPoint : IServerEntryPoint, IDisposable
     {
-        public string Name => "OriginalPoster";
-        
-        // 设置为负数，确保在 TMDB 之前执行
-        public int Order => -100;
-
         private readonly ILogger _logger;
+        private readonly ILogManager _logManager;
         private readonly IHttpClient _httpClient;
+        private readonly IProviderManager _providerManager;
+        private OriginalLanguageImageProvider _imageProvider;
 
-        // Emby 会通过依赖注入自动调用这个构造函数
-        public OriginalLanguageImageProvider(ILogManager logManager, IHttpClient httpClient)
+        public ServerEntryPoint(ILogManager logManager, IHttpClient httpClient, IProviderManager providerManager)
         {
+            _logManager = logManager;
             _logger = logManager.GetLogger(GetType().Name);
             _httpClient = httpClient;
-            _logger.Info("╔═══════════════════════════════════════════════════════════");
-            _logger.Info("║ OriginalLanguageImageProvider initialized");
-            _logger.Info("║ Name: {0}, Order: {1}", Name, Order);
-            _logger.Info("╚═══════════════════════════════════════════════════════════");
+            _providerManager = providerManager;
+            _logger.Info("=== ServerEntryPoint constructor called ===");
         }
 
-        public bool Supports(BaseItem item)
+        public void Run()
         {
-            var isMovie = item is Movie;
-            var hasTmdbId = isMovie && item.HasProviderId(MetadataProviders.Tmdb);
+            _logger.Info("╔═══════════════════════════════════════════════════════════════");
+            _logger.Info("║ OriginalPoster Plugin Starting");
+            _logger.Info("╚═══════════════════════════════════════════════════════════════");
             
-            // 强制日志，每次都输出
-            _logger.Info("═══ Supports called for: {0} (IsMovie: {1}, HasTmdb: {2}) ═══", 
-                item?.Name ?? "null", 
-                isMovie, 
-                hasTmdbId);
-            
-            if (hasTmdbId)
+            // 检查 Plugin 实例
+            if (Plugin.Instance == null)
             {
-                _logger.Info("→→→ Supports returning TRUE for: {0}", item.Name);
+                _logger.Error("❌ Plugin.Instance is NULL!");
+                return;
             }
-            else
-            {
-                _logger.Debug("→→→ Supports returning FALSE for: {0}", item?.Name ?? "null");
-            }
-            
-            return hasTmdbId;
-        }
+            _logger.Info("✓ Plugin.Instance OK");
 
-        public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, LibraryOptions libraryOptions, CancellationToken cancellationToken)
-        {
-            _logger.Info("╔═══════════════════════════════════════════════════════════");
-            _logger.Info("║ GetImages called for: {0}", item.Name);
-            _logger.Info("║ LibraryOptions present: {0}", libraryOptions != null);
-            
-            // 诊断：检查 LibraryOptions 中的 Provider 设置
-            if (libraryOptions != null)
-            {
-                _logger.Info("║ DisabledImageFetchers: {0}", 
-                    libraryOptions.DisabledImageFetchers != null ? 
-                    string.Join(", ", libraryOptions.DisabledImageFetchers) : 
-                    "null");
-            }
-            
-            _logger.Info("╚═══════════════════════════════════════════════════════════");
-
-            var movie = item as Movie;
-            if (movie == null)
-            {
-                _logger.Warn("Item is not a Movie.");
-                return new List<RemoteImageInfo>();
-            }
-
-            // 检查插件配置
-            if (Plugin.Instance?.PluginConfiguration == null)
-            {
-                _logger.Error("Plugin configuration not available!");
-                return new List<RemoteImageInfo>();
-            }
-
+            // 检查配置
             var config = Plugin.Instance.PluginConfiguration;
+            if (config == null)
+            {
+                _logger.Error("❌ Configuration is NULL!");
+                return;
+            }
+            _logger.Info("✓ Configuration OK");
+            _logger.Info("  - Plugin Enabled: {0}", config.EnablePlugin);
+            _logger.Info("  - API Key Configured: {0}", !string.IsNullOrEmpty(config.TmdbApiKey));
             
-            _logger.Info("Config - Enabled: {0}, API Key: {1}", 
-                config.EnablePlugin, 
-                !string.IsNullOrEmpty(config.TmdbApiKey) ? "Set" : "NOT SET");
-
-            if (!config.EnablePlugin)
+            if (string.IsNullOrEmpty(config.TmdbApiKey))
             {
-                _logger.Info("Plugin is disabled in settings.");
-                return new List<RemoteImageInfo>();
+                _logger.Warn("⚠️  TMDB API Key NOT configured!");
             }
 
-            var tmdbId = movie.GetProviderId(MetadataProviders.Tmdb);
-            if (string.IsNullOrEmpty(tmdbId))
-            {
-                _logger.Warn("Movie has no TMDB ID.");
-                return new List<RemoteImageInfo>();
-            }
-
-            var apiKey = config.TmdbApiKey;
-            if (string.IsNullOrEmpty(apiKey))
-            {
-                _logger.Error("TMDB API Key not configured! Please configure in plugin settings.");
-                _logger.Error("Go to: Emby Console → Plugins → OriginalPoster Settings");
-                return new List<RemoteImageInfo>();
-            }
-
-            _logger.Info("Processing: {0} (TMDB: {1})", movie.Name, tmdbId);
-
+            // 创建 Provider 实例
             try
             {
-                // 1. 获取原始语言
-                var originalLanguage = await GetOriginalLanguageAsync(tmdbId, apiKey, cancellationToken);
-                if (string.IsNullOrEmpty(originalLanguage))
-                {
-                    _logger.Warn("Could not determine original language.");
-                    return new List<RemoteImageInfo>();
-                }
-
-                _logger.Info("Original language: {0}", originalLanguage);
-
-                // 2. 获取并排序海报
-                var sortedPosters = await GetSortedPostersAsync(tmdbId, apiKey, originalLanguage, cancellationToken);
-
-                var originalCount = sortedPosters.Count(p => p.Language == originalLanguage);
-                _logger.Info("SUCCESS: Returning {0} posters ({1} in {2}, {3} others)", 
-                    sortedPosters.Count, 
-                    originalCount,
-                    originalLanguage,
-                    sortedPosters.Count - originalCount);
-
-                return sortedPosters;
+                _imageProvider = new OriginalLanguageImageProvider(_logManager, _httpClient);
+                _logger.Info("✓ Provider instance created");
+                _logger.Info("  - Provider Name: {0}", _imageProvider.Name);
+                _logger.Info("  - Provider Order: {0}", _imageProvider.Order);
             }
             catch (Exception ex)
             {
-                _logger.ErrorException($"Error processing movie: {movie.Name}", ex);
-                return new List<RemoteImageInfo>();
+                _logger.ErrorException("❌ Failed to create Provider", ex);
+                return;
             }
-        }
 
-        public IEnumerable<ImageType> GetSupportedImages(BaseItem item)
-        {
-            return new[] { ImageType.Primary };
-        }
-
-        public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken cancellationToken)
-        {
-            // Emby 会自己下载图片
-            return Task.FromResult(new HttpResponseInfo());
-        }
-
-        // ============ Helper Methods ============
-
-        private async Task<string> GetOriginalLanguageAsync(string tmdbId, string apiKey, CancellationToken cancellationToken)
-        {
-            var url = $"https://api.themoviedb.org/3/movie/{tmdbId}?api_key={apiKey}&language=en-US";
-
-            var options = new HttpRequestOptions
-            {
-                Url = url,
-                CancellationToken = cancellationToken,
-                BufferContent = true,
-                EnableHttpCompression = true
-            };
-
-            _logger.Debug("Fetching movie info from TMDB...");
-
+            // 诊断：列出所有已注册的 Image Providers
             try
             {
-                using var response = await _httpClient.GetResponse(options);
-                using var stream = response.Content;
-                using var reader = new StreamReader(stream);
-                var jsonString = await reader.ReadToEndAsync();
-
-                using var doc = JsonDocument.Parse(jsonString);
-                if (doc.RootElement.TryGetProperty("original_language", out var langElement))
-                {
-                    return langElement.GetString();
-                }
-
-                _logger.Warn("No 'original_language' in TMDB response");
-                return null;
-            }
-            catch (Exception ex)
-            {
-                _logger.ErrorException($"Failed to fetch movie info for TMDB ID: {tmdbId}", ex);
-                return null;
-            }
-        }
-
-        private async Task<List<RemoteImageInfo>> GetSortedPostersAsync(string tmdbId, string apiKey, string originalLanguage, CancellationToken cancellationToken)
-        {
-            var url = $"https://api.themoviedb.org/3/movie/{tmdbId}/images?api_key={apiKey}";
-
-            var options = new HttpRequestOptions
-            {
-                Url = url,
-                CancellationToken = cancellationToken,
-                BufferContent = true,
-                EnableHttpCompression = true
-            };
-
-            _logger.Debug("Fetching posters from TMDB...");
-
-            try
-            {
-                using var response = await _httpClient.GetResponse(options);
-                using var stream = response.Content;
-                using var reader = new StreamReader(stream);
-                var jsonString = await reader.ReadToEndAsync();
-
-                using var doc = JsonDocument.Parse(jsonString);
+                _logger.Info("───────────────────────────────────────────────────────────────");
+                _logger.Info("Checking registered Image Providers...");
                 
-                if (!doc.RootElement.TryGetProperty("posters", out var postersProperty))
+                var allProviders = _providerManager.ImageProviders;
+                if (allProviders != null && allProviders.Length > 0)
                 {
-                    _logger.Warn("No 'posters' in TMDB response");
-                    return new List<RemoteImageInfo>();
-                }
-
-                var postersArray = postersProperty.EnumerateArray();
-                var matchingPosters = new List<RemoteImageInfo>();
-                var otherPosters = new List<RemoteImageInfo>();
-
-                foreach (var poster in postersArray)
-                {
-                    if (!poster.TryGetProperty("file_path", out var filePathProp))
-                        continue;
-
-                    var filePath = filePathProp.GetString();
-                    if (string.IsNullOrEmpty(filePath))
-                        continue;
-
-                    var isoCode = poster.TryGetProperty("iso_639_1", out var isoProp) 
-                        ? isoProp.GetString() 
-                        : null;
-
-                    var fullImageUrl = $"https://image.tmdb.org/t/p/original{filePath}";
+                    _logger.Info("Total registered providers: {0}", allProviders.Length);
                     
-                    var imageInfo = new RemoteImageInfo
+                    foreach (var provider in allProviders)
                     {
-                        ProviderName = Name,
-                        Url = fullImageUrl,
-                        Type = ImageType.Primary,
-                        Language = isoCode
-                    };
+                        var providerType = provider.GetType().FullName;
+                        var hasOrder = provider as IHasOrder;
+                        var order = hasOrder?.Order ?? 0;
+                        var isRemote = provider is IRemoteImageProvider;
+                        
+                        _logger.Info("  - {0} (Type: {1}, Order: {2}, Remote: {3})", 
+                            provider.Name, 
+                            providerType,
+                            order,
+                            isRemote);
+                    }
 
-                    if (isoCode == originalLanguage)
+                    // 检查我们的 Provider
+                    var ourProvider = allProviders.FirstOrDefault(p => p.Name == "OriginalPoster");
+                    var testProvider = allProviders.FirstOrDefault(p => p.Name == "TestOriginalPoster");
+                    
+                    if (ourProvider != null)
                     {
-                        matchingPosters.Add(imageInfo);
-                        _logger.Debug("✓ Original language: {0}", filePath);
+                        _logger.Info("✓✓✓ OriginalPoster IS in ImageProviders list! ✓✓✓");
                     }
                     else
                     {
-                        otherPosters.Add(imageInfo);
+                        _logger.Error("❌ OriginalPoster NOT in ImageProviders list!");
+                    }
+                    
+                    if (testProvider != null)
+                    {
+                        _logger.Info("✓✓✓ TestOriginalPoster IS in ImageProviders list! ✓✓✓");
+                    }
+                    else
+                    {
+                        _logger.Error("❌ TestOriginalPoster NOT in ImageProviders list!");
+                    }
+                    
+                    // 检查构造函数是否被调用但没注册
+                    if (_imageProvider != null && ourProvider == null)
+                    {
+                        _logger.Error("⚠️⚠️⚠️ CRITICAL: Provider constructed but NOT registered!");
+                        _logger.Error("This suggests Emby's DI container created the instance but didn't add it to ImageProviders");
+                        _logger.Error("Possible causes:");
+                        _logger.Error("  1. Provider initialization failed after construction");
+                        _logger.Error("  2. Provider was filtered out due to configuration");
+                        _logger.Error("  3. Emby version compatibility issue");
                     }
                 }
-
-                // 原语言海报优先
-                var sortedList = new List<RemoteImageInfo>(matchingPosters);
-                sortedList.AddRange(otherPosters);
-
-                _logger.Info("Found {0} original language posters, {1} others", 
-                    matchingPosters.Count, 
-                    otherPosters.Count);
-
-                return sortedList;
+                else
+                {
+                    _logger.Warn("ImageProviders property is NULL or empty!");
+                }
             }
             catch (Exception ex)
             {
-                _logger.ErrorException($"Failed to fetch posters for TMDB ID: {tmdbId}", ex);
-                return new List<RemoteImageInfo>();
+                _logger.ErrorException("Failed to check providers", ex);
             }
+
+            _logger.Info("═══════════════════════════════════════════════════════════════");
+            
+            // 额外诊断：检查对于 Movie 类型，哪些 Provider 会被使用
+            _logger.Info("───────────────────────────────────────────────────────────────");
+            _logger.Info("Testing provider availability for Movie type...");
+            
+            try
+            {
+                // 创建一个测试用的 Movie 对象（仅用于检查）
+                var testMovie = new MediaBrowser.Controller.Entities.Movies.Movie
+                {
+                    Name = "Test Movie"
+                };
+                testMovie.SetProviderId(MetadataProviders.Tmdb, "12345");
+                
+                var testLibraryOptions = _providerManager.GetDefaultLibraryOptions("movies");
+                
+                _logger.Info("Getting enabled providers for test movie...");
+                var enabledProviders = _providerManager.GetRemoteImageProviderInfo(testMovie, testLibraryOptions);
+                
+                _logger.Info("Enabled Image Providers for Movies:");
+                foreach (var provider in enabledProviders)
+                {
+                    _logger.Info("  - {0}", provider.Name);
+                }
+                
+                var ourProviderEnabled = enabledProviders.Any(p => p.Name == "OriginalPoster");
+                if (ourProviderEnabled)
+                {
+                    _logger.Info("✓✓✓ OriginalPoster IS enabled for movies! ✓✓✓");
+                }
+                else
+                {
+                    _logger.Error("❌❌❌ OriginalPoster is NOT enabled for movies!");
+                    _logger.Error("This is why it's not being called during refresh!");
+                    _logger.Error("");
+                    _logger.Error("TO FIX THIS:");
+                    _logger.Error("1. Go to Emby Dashboard → Libraries");
+                    _logger.Error("2. Find your movie library → Click ⋮ → Manage Library");
+                    _logger.Error("3. Go to the tab with image/fetcher settings");
+                    _logger.Error("4. Enable 'OriginalPoster' provider");
+                    _logger.Error("5. Save and try refreshing metadata again");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.ErrorException("Error testing provider availability", ex);
+            }
+            
+            _logger.Info("═══════════════════════════════════════════════════════════════");
+        }
+
+        public void Dispose()
+        {
+            _logger.Info("OriginalPoster plugin unloading...");
+            _imageProvider = null;
         }
     }
 }

@@ -2,6 +2,7 @@ using MediaBrowser.Controller.Plugins;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Providers;
+using MediaBrowser.Controller.Entities.Movies;
 using OriginalPoster.Providers;
 using System;
 using System.Linq;
@@ -138,32 +139,52 @@ namespace OriginalPoster
             }
 
             _logger.Info("═══════════════════════════════════════════════════════════════");
-            // 在 ServerEntryPoint.cs 的 Run() 方法最后添加这段诊断代码
-
+            
+            // 额外诊断：检查对于 Movie 类型，哪些 Provider 会被使用
             _logger.Info("───────────────────────────────────────────────────────────────");
-            _logger.Info("Checking library options for OriginalPoster...");
+            _logger.Info("Testing provider availability for Movie type...");
             
             try
             {
-                // 获取所有媒体库
-                var libraryManager = _providerManager as dynamic; // 尝试获取 LibraryManager
+                // 创建一个测试用的 Movie 对象（仅用于检查）
+                var testMovie = new MediaBrowser.Controller.Entities.Movies.Movie
+                {
+                    Name = "Test Movie"
+                };
+                testMovie.SetProviderId(MetadataProviders.Tmdb, "12345");
                 
-                // 注意：这段代码可能需要调整，因为我们需要访问 LibraryManager
-                // 如果编译失败，请告诉我，我会提供替代方案
+                var testLibraryOptions = _providerManager.GetDefaultLibraryOptions("movies");
                 
-                _logger.Info("If you see 'Running MovieDbImageProvider' but NOT 'Running OriginalLanguageImageProvider'");
-                _logger.Info("in the refresh logs, it means the provider is disabled in library settings.");
-                _logger.Info("");
-                _logger.Info("TO FIX:");
-                _logger.Info("1. Go to Emby Dashboard → Libraries");
-                _logger.Info("2. Click the three dots on your movie library → Manage Library");  
-                _logger.Info("3. Go to 'Images' or 'Fetchers' tab");
-                _logger.Info("4. Make sure 'OriginalPoster' is checked/enabled");
-                _logger.Info("5. Save and refresh metadata again");
+                _logger.Info("Getting enabled providers for test movie...");
+                var enabledProviders = _providerManager.GetRemoteImageProviderInfo(testMovie, testLibraryOptions);
+                
+                _logger.Info("Enabled Image Providers for Movies:");
+                foreach (var provider in enabledProviders)
+                {
+                    _logger.Info("  - {0}", provider.Name);
+                }
+                
+                var ourProviderEnabled = enabledProviders.Any(p => p.Name == "OriginalPoster");
+                if (ourProviderEnabled)
+                {
+                    _logger.Info("✓✓✓ OriginalPoster IS enabled for movies! ✓✓✓");
+                }
+                else
+                {
+                    _logger.Error("❌❌❌ OriginalPoster is NOT enabled for movies!");
+                    _logger.Error("This is why it's not being called during refresh!");
+                    _logger.Error("");
+                    _logger.Error("TO FIX THIS:");
+                    _logger.Error("1. Go to Emby Dashboard → Libraries");
+                    _logger.Error("2. Find your movie library → Click ⋮ → Manage Library");
+                    _logger.Error("3. Go to the tab with image/fetcher settings");
+                    _logger.Error("4. Enable 'OriginalPoster' provider");
+                    _logger.Error("5. Save and try refreshing metadata again");
+                }
             }
             catch (Exception ex)
             {
-                _logger.ErrorException("Error checking library options", ex);
+                _logger.ErrorException("Error testing provider availability", ex);
             }
             
             _logger.Info("═══════════════════════════════════════════════════════════════");
