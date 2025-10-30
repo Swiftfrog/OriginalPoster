@@ -160,7 +160,7 @@ namespace OriginalPoster.Providers
         public string[] GetSupportedExternalIdentifiers()
         {
             // return new[] { "OriginalPoster" };
-            return new[] { MetadataProviders.Tmdb };
+            return new[] { "Tmdb" };
         }
 
         // ============ Helper Methods ============
