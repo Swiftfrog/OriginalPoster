@@ -1,4 +1,5 @@
 using MediaBrowser.Controller;
+using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Plugins;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Logging;
