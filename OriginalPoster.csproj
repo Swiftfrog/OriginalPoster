@@ -24,6 +24,4 @@
     <None Remove="Configuration\config.html" />
   </ItemGroup>
 
-  </Target>
-
 </Project>
