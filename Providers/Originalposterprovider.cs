@@ -36,7 +36,8 @@ namespace OriginalPoster.Providers
         {
             _httpClient = httpClient;
             // 👇 直接使用官方 NullLogger
-            _logger = logManager?.GetLogger(GetType().Name) ?? NullLogger.Instance;
+            // _logger = logManager?.GetLogger(GetType().Name) ?? NullLogger.Instance;
+            _logger = logManager?.GetLogger(GetType().Name) ?? new NullLogger();
             LogDebug("Provider initialized");
         }
         
