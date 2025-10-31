@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using MediaBrowser.Model.Plugins;
 
-namespace EmbyOriginalPosterPlugin
+namespace OriginalPoster
 {
     /// <summary>
     /// 插件主类 - 第一阶段基础版本

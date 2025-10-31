@@ -1,6 +1,8 @@
+// Pluginconfiguration.cs
+
 using MediaBrowser.Model.Plugins;
 
-namespace EmbyOriginalPosterPlugin
+namespace OriginalPoster
 {
     /// <summary>
     /// 插件配置类 - 第一阶段最简配置
