@@ -9,7 +9,7 @@ namespace OriginalPoster
     /// <summary>
     /// 插件主类 - 使用 BasePluginSimpleUI 自动生成配置界面
     /// </summary>
-    public class Plugin : BasePluginSimpleUI<PluginConfiguration>
+    public class PluginConfiguration : EditableOptionsBase
     {
         public override Guid Id => new Guid("2DE6B212-1C77-EFBC-8B95-A45F6DAE8921");
         
