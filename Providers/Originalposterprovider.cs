@@ -12,7 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
 
-namespace EmbyOriginalPosterPlugin.Providers
+namespace OriginalPoster.Providers
 {
     /// <summary>
     /// 原语言海报提供者 - 第一阶段基础实现
