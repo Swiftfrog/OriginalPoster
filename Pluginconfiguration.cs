@@ -9,6 +9,9 @@ namespace OriginalPoster
     /// </summary>
     public class PluginConfiguration : EditableOptionsBase
     {
+        
+        public override string EditorTitle => "原语言海报插件设置";
+        
         /// <summary>
         /// 是否启用插件
         /// </summary>
