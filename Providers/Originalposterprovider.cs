@@ -5,6 +5,7 @@ using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Dto;
 using MediaBrowser.Model.Entities;
+using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Providers;
 using System;
 using System.Collections.Generic;
@@ -20,6 +21,7 @@ namespace OriginalPoster.Providers
     public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
     {
         private readonly IHttpClient _httpClient;
+        private readonly ILogger _logger;
         
         /// <summary>
         /// 提供者名称（显示在媒体库设置中）
@@ -31,10 +33,11 @@ namespace OriginalPoster.Providers
         /// </summary>
         public int Order => 0;
         
-        public OriginalPosterProvider(IHttpClient httpClient)
+        public OriginalPosterProvider(IHttpClient httpClient, ILogger logger)
         {
             _httpClient = httpClient;
-            LogDebug("Provider initialized");
+            _logger = logger;
+            _logger?.LogDebug("[OriginalPoster] Provider initialized");
         }
         
         /// <summary>
@@ -167,10 +170,19 @@ namespace OriginalPoster.Providers
         /// </summary>
         private void LogDebug(string message)
         {
-            if (Plugin.Instance?.Configuration?.DebugLogging == true)
+            var config = Plugin.Instance?.Configuration;
+            if (config?.DebugLogging == true)
             {
-                Console.WriteLine($"[OriginalPoster] {DateTime.Now:HH:mm:ss} {message}");
+                _logger?.LogDebug("[OriginalPoster] {Message}", message);
             }
         }
+    
+//        private void LogDebug(string message)
+//        {
+//            if (Plugin.Instance?.Configuration?.DebugLogging == true)
+//            {
+//                Console.WriteLine($"[OriginalPoster] {DateTime.Now:HH:mm:ss} {message}");
+//            }
+//        }
     }
 }
