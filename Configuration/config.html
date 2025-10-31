@@ -1,120 +1,63 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>TMDB Original Language Settings</title>
+    <title>TMDB Original Language - Test</title>
 </head>
 <body>
-    <div id="tmdbOriginalLanguageConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox">
+    <div id="testConfigPage" data-role="page" class="page type-interior pluginConfigurationPage">
         <div data-role="content">
             <div class="content-primary">
-                <form id="tmdbOriginalLanguageConfigForm">
-                    <div class="sectionTitleContainer">
-                        <h2>TMDB Original Language - Test Mode</h2>
-                    </div>
-                    <div class="verticalSection">
-                        <div class="checkboxContainer checkboxContainer-withDescription">
-                            <label>
-                                <input type="checkbox" is="emby-checkbox" id="chkEnabled" />
-                                <span>Enable Plugin</span>
-                            </label>
-                            <div class="fieldDescription">Enable or disable the plugin</div>
-                        </div>
-                        
-                        <div class="checkboxContainer checkboxContainer-withDescription">
-                            <label>
-                                <input type="checkbox" is="emby-checkbox" id="chkTestMode" />
-                                <span>Test Mode</span>
-                            </label>
-                            <div class="fieldDescription">Return test poster for all movies</div>
-                        </div>
-                        
-                        <div class="checkboxContainer checkboxContainer-withDescription">
-                            <label>
-                                <input type="checkbox" is="emby-checkbox" id="chkDebugLogging" />
-                                <span>Debug Logging</span>
-                            </label>
-                            <div class="fieldDescription">Enable detailed logging to help troubleshoot issues</div>
-                        </div>
-                        
-                        <div class="inputContainer">
-                            <label for="txtTestPosterUrl">Test Poster URL</label>
-                            <input type="text" id="txtTestPosterUrl" is="emby-input" />
-                            <div class="fieldDescription">URL of the test poster image</div>
-                        </div>
-                        
-                        <div>
-                            <button is="emby-button" type="submit" class="raised button-submit block">
-                                <span>Save</span>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="verticalSection">
-                        <h3>Instructions</h3>
-                        <ol>
-                            <li>Enable the plugin</li>
-                            <li>In library settings, enable "TMDB Original Language" image fetcher</li>
-                            <li>Refresh movie metadata to fetch test posters</li>
-                            <li>Check Emby logs for plugin activity</li>
-                        </ol>
-                    </div>
-                </form>
+                <h1>Plugin Configuration Test Page</h1>
+                <p><strong>✓ If you can see this page, the embedded resource is working!</strong></p>
+                
+                <div id="status" style="margin: 20px 0; padding: 15px; background: #f0f0f0; border-radius: 4px;">
+                    <p>Loading...</p>
+                </div>
+                
+                <h2>Next Steps:</h2>
+                <ol>
+                    <li>If this page loads successfully, replace with the full config.html</li>
+                    <li>If this page doesn't load, there's an issue with embedded resources</li>
+                    <li>Check the browser console (F12) for any JavaScript errors</li>
+                </ol>
             </div>
         </div>
-        
-        <script type="text/javascript">
-            var TmdbOriginalLanguageConfig = {
-                pluginId: '2DE6B212-1C77-EFBC-8B95-A45F6DAE8921',
-                
-                loadConfiguration: function(page) {
-                    Dashboard.showLoadingMsg();
-                    
-                    ApiClient.getPluginConfiguration(TmdbOriginalLanguageConfig.pluginId).then(function(config) {
-                        page.querySelector('#chkEnabled').checked = config.Enabled !== false;
-                        page.querySelector('#chkTestMode').checked = config.TestMode !== false;
-                        page.querySelector('#chkDebugLogging').checked = config.DebugLogging !== false;
-                        page.querySelector('#txtTestPosterUrl').value = config.TestPosterUrl || 'https://image.tmdb.org/t/p/original/zGINvGjdlO6TJRu9wESQvWlOKVT.jpg';
-                        
-                        Dashboard.hideLoadingMsg();
-                    }).catch(function() {
-                        Dashboard.hideLoadingMsg();
-                        Dashboard.alert('Failed to load plugin configuration.');
-                    });
-                },
-                
-                saveConfiguration: function(page) {
-                    Dashboard.showLoadingMsg();
-                    
-                    var config = {
-                        Enabled: page.querySelector('#chkEnabled').checked,
-                        TestMode: page.querySelector('#chkTestMode').checked,
-                        DebugLogging: page.querySelector('#chkDebugLogging').checked,
-                        TestPosterUrl: page.querySelector('#txtTestPosterUrl').value || ''
-                    };
-                    
-                    ApiClient.updatePluginConfiguration(TmdbOriginalLanguageConfig.pluginId, config).then(function() {
-                        Dashboard.hideLoadingMsg();
-                        Dashboard.processPluginConfigurationUpdateResult();
-                    }).catch(function() {
-                        Dashboard.hideLoadingMsg();
-                        Dashboard.alert('Failed to save plugin configuration.');
-                    });
-                }
-            };
-            
-            (function() {
-                document.getElementById('tmdbOriginalLanguageConfigForm').addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    TmdbOriginalLanguageConfig.saveConfiguration(e.target.closest('.page'));
-                    return false;
-                });
-                
-                document.getElementById('tmdbOriginalLanguageConfigPage').addEventListener('pageshow', function() {
-                    TmdbOriginalLanguageConfig.loadConfiguration(this);
-                });
-            })();
-        </script>
     </div>
+    
+    <script type="text/javascript">
+        (function() {
+            var pluginId = '2DE6B212-1C77-EFBC-8B95-A45F6DAE8921';
+            var statusDiv = document.getElementById('status');
+            
+            statusDiv.innerHTML = 
+                '<p><strong>Test Results:</strong></p>' +
+                '<p>Plugin ID: ' + pluginId + '</p>' +
+                '<p>Dashboard available: ' + (typeof Dashboard !== 'undefined' ? '✓ Yes' : '✗ No') + '</p>' +
+                '<p>ApiClient available: ' + (typeof ApiClient !== 'undefined' ? '✓ Yes' : '✗ No') + '</p>';
+            
+            if (typeof ApiClient !== 'undefined' && typeof Dashboard !== 'undefined') {
+                Dashboard.showLoadingMsg();
+                
+                ApiClient.getPluginConfiguration(pluginId)
+                    .then(function(config) {
+                        statusDiv.innerHTML += 
+                            '<p style="color: green;"><strong>✓ Configuration loaded successfully!</strong></p>' +
+                            '<p>Enabled: ' + config.Enabled + '</p>' +
+                            '<p>TestMode: ' + config.TestMode + '</p>' +
+                            '<p>DebugLogging: ' + config.DebugLogging + '</p>' +
+                            '<p>TestPosterUrl: ' + (config.TestPosterUrl ? config.TestPosterUrl.substring(0, 50) + '...' : 'Not set') + '</p>';
+                        Dashboard.hideLoadingMsg();
+                    })
+                    .catch(function(error) {
+                        statusDiv.innerHTML += 
+                            '<p style="color: red;"><strong>✗ Error loading configuration:</strong></p>' +
+                            '<p>' + error.toString() + '</p>';
+                        Dashboard.hideLoadingMsg();
+                    });
+            } else {
+                statusDiv.innerHTML += '<p style="color: orange;"><strong>⚠ Emby API not available</strong></p>';
+            }
+        })();
+    </script>
 </body>
 </html>
