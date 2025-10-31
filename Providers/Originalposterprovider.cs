@@ -152,6 +152,15 @@ namespace EmbyOriginalPosterPlugin.Providers
             return imageType == ImageType.Primary && Supports(item);
         }
         
+        public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken cancellationToken)
+        {
+            return _httpClient.GetResponse(new HttpRequestOptions
+            {
+                Url = url,
+                CancellationToken = cancellationToken
+            });
+        }
+        
         /// <summary>
         /// 调试日志输出
         /// </summary>
