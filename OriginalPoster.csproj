@@ -17,7 +17,7 @@
 
   <ItemGroup>
     <!-- 配置页面HTML文件（第二阶段添加） -->
-    <EmbeddedResource Include="Configuration/*.html" />
+    <EmbeddedResource Include="/Configuration/*.html" />
   </ItemGroup>
 
 </Project>

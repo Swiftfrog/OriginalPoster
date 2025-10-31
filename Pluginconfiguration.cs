@@ -38,7 +38,7 @@ namespace OriginalPoster
             
             // 测试用海报 - 使用TMDB的一个示例海报
             // 这是《肖申克的救赎》的中文海报，用于测试
-            TestPosterUrl = "https://image.tmdb.org/t/p/original/zGINvGjdlO6TJRu9wESQvWlOKVT.jpg";
+            TestPosterUrl = "https://image.tmdb.org/t/p/original/cgZjpqRQt9sk6XMCwZ3B1NPAaoy.jpg";
         }
     }
 }

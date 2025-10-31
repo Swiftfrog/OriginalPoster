@@ -29,7 +29,7 @@ namespace OriginalPoster
             Instance = this;
             
             // 第一阶段：启动时输出日志确认插件加载
-            Console.WriteLine($"[OriginalPoster] Plugin loaded, version {Version}");
+            // Console.WriteLine($"[OriginalPoster] Plugin loaded, version {Version}");
  
         }
         
