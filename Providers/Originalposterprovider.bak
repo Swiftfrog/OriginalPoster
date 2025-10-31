@@ -1,4 +1,3 @@
-// Originalposterprovider.cs
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
@@ -38,7 +37,7 @@ namespace OriginalPoster.Providers
         {
             _httpClient = httpClient;
             _logger = logger;
-            _logger?.Info("[OriginalPoster] Provider initialized");
+            _logger?.Debug("[OriginalPoster] Provider initialized");
         }
         
         /// <summary>
@@ -49,7 +48,10 @@ namespace OriginalPoster.Providers
             // 第一阶段只支持电影
             var supported = item is Movie;
             
-            _logger?.Debug("Supports check for {item.Name}: {supported}");
+            if (supported && Plugin.Instance?.Configuration?.DebugLogging == true)
+            {
+                LogDebug($"Supports check for {item.Name}: {supported}");
+            }
             
             return supported;
         }
@@ -65,13 +67,13 @@ namespace OriginalPoster.Providers
         {
             var config = Plugin.Instance?.Configuration;
             
-            _logger?.Debug("GetImages called for: {item.Name}");
+            LogDebug($"GetImages called for: {item.Name}");
         
             var images = new List<RemoteImageInfo>();
             
             if (config?.TestMode == true)
             {
-                _logger?.Debug("Test mode enabled, returning test poster");
+                LogDebug("Test mode enabled, returning test poster");
                 
                 images.Add(new RemoteImageInfo
                 {
@@ -88,15 +90,53 @@ namespace OriginalPoster.Providers
                     RatingType = RatingType.Score
                 });
                 
-                _logger?.Debug("Returning {images.Count} test image(s)");
+                LogDebug($"Returning {images.Count} test image(s)");
             }
             else
             {
-                _logger?.Info("Test mode disabled, returning empty list");
+                LogDebug("Test mode disabled, returning empty list");
             }
             
             return Task.FromResult<IEnumerable<RemoteImageInfo>>(images);
         }
+        
+//        public Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken cancellationToken)
+//        {
+//            var config = Plugin.Instance?.Configuration;
+//            
+//            LogDebug($"GetImages called for: {item.Name}");
+//            
+//            var images = new List<RemoteImageInfo>();
+//            
+//            // 第一阶段：如果是测试模式，返回测试海报
+//            if (config?.TestMode == true)
+//            {
+//                LogDebug("Test mode enabled, returning test poster");
+//                
+//                images.Add(new RemoteImageInfo
+//                {
+//                    ProviderName = Name,
+//                    Type = ImageType.Primary,  // Primary = 海报
+//                    Url = config.TestPosterUrl,
+//                    ThumbnailUrl = config.TestPosterUrl,
+//                    Language = "zh",  // 假设是中文海报
+//                    DisplayLanguage = "Chinese",
+//                    Width = 1000,
+//                    Height = 1500,
+//                    CommunityRating = 8.5,
+//                    VoteCount = 100,
+//                    RatingType = RatingType.Score
+//                });
+//                
+//                LogDebug($"Returning {images.Count} test image(s)");
+//            }
+//            else
+//            {
+//                LogDebug("Test mode disabled, returning empty list");
+//            }
+//            
+//            return Task.FromResult<IEnumerable<RemoteImageInfo>>(images);
+//        }
         
         /// <summary>
         /// 获取支持的图像类型
@@ -124,7 +164,25 @@ namespace OriginalPoster.Providers
                 CancellationToken = cancellationToken
             });
         }
-
+        
+        /// <summary>
+        /// 调试日志输出
+        /// </summary>
+        private void LogDebug(string message)
+        {
+            var config = Plugin.Instance?.Configuration;
+            if (config?.DebugLogging == true)
+            {
+                _logger?.Debug("[OriginalPoster] {Message}", message);
+            }
+        }
+    
+//        private void LogDebug(string message)
+//        {
+//            if (Plugin.Instance?.Configuration?.DebugLogging == true)
+//            {
+//                Console.WriteLine($"[OriginalPoster] {DateTime.Now:HH:mm:ss} {message}");
+//            }
+//        }
     }
 }
-
