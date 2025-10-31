@@ -35,7 +35,7 @@ namespace OriginalPoster
         /// </summary>
         [DisplayName("测试海报 URL")]
         [Description("测试模式下使用的海报图片地址")]
-        public string TestPosterUrl { get; set; } = "https://image.tmdb.org/t/p/original/cgZjpqRQt9sk6XMCwZ3B1NPAaoy.jpg"
+        public string TestPosterUrl { get; set; } = "https://image.tmdb.org/t/p/original/cgZjpqRQt9sk6XMCwZ3B1NPAaoy.jpg";
         
 //        public PluginConfiguration()
 //        {
