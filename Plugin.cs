@@ -21,7 +21,7 @@ namespace OriginalPoster
         // 插件实例（供其他类访问配置）
         public static Plugin Instance { get; private set; }
         
-        public new PluginConfiguration Configuration => base.Configuration;
+         public PluginConfiguration Configuration => GetOptions();
         
         public Plugin(IApplicationHost applicationPaths)
             : base(applicationPaths)
