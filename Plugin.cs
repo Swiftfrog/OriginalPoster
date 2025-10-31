@@ -14,7 +14,7 @@ namespace EmbyOriginalPosterPlugin
     {
         // TODO: 使用 uuidgen 命令生成你自己的GUID并替换下面的值
         // 在Mac终端运行: uuidgen
-        public override Guid Id => new Guid("XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX");
+        public override Guid Id => new Guid("2DE6B212-1C77-EFBC-8B95-A45F6DAE8921");
         
         public override string Name => "TMDB Original Language";
         
