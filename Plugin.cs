@@ -1,33 +1,51 @@
-using MediaBrowser.Controller;
-using MediaBrowser.Controller.Plugins;
+using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
-using MediaBrowser.Model.Logging;
+using MediaBrowser.Model.Serialization;
 using System;
-using OriginalPoster.Config;
+using System.Collections.Generic;
+using MediaBrowser.Model.Plugins;
 
-namespace OriginalPoster
+namespace EmbyOriginalPosterPlugin
 {
-    public class Plugin : BasePluginSimpleUI<OriginalPosterConfig>
+    /// <summary>
+    /// 插件主类 - 第一阶段基础版本
+    /// </summary>
+    public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     {
-        public override string Name => "OriginalPoster";
-        public override string Description => "优先显示影视作品原生语言的海报。";
-        public override Guid Id => new Guid("09872246-4676-EBD7-E81C-9B95E12A832B");
-
-        private readonly ILogger _logger;
-
-        // 构造函数：BasePluginSimpleUI 要求传入 IApplicationHost
-        public Plugin(IServerApplicationHost applicationHost, ILogManager logManager)
-            : base(applicationHost)
+        // TODO: 使用 uuidgen 命令生成你自己的GUID并替换下面的值
+        // 在Mac终端运行: uuidgen
+        public override Guid Id => new Guid("XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX");
+        
+        public override string Name => "TMDB Original Language";
+        
+        public override string Description => "Automatically fetches movie posters in their original language from TMDB";
+        
+        // 插件实例（供其他类访问配置）
+        public static Plugin Instance { get; private set; }
+        
+        public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer)
+            : base(applicationPaths, xmlSerializer)
         {
             Instance = this;
-            _logger = logManager.GetLogger(GetType().Name);
-            _logger.Info("Plugin constructor called. Instance created.");
+            
+            // 第一阶段：启动时输出日志确认插件加载
+            Console.WriteLine($"[OriginalPoster] Plugin loaded, version {Version}");
         }
-
-        // 单例访问点（便于其他类获取配置）
-        public static Plugin Instance { get; private set; }
-
-        // 便捷属性：从插件内部获取当前配置
-        public OriginalPosterConfig PluginConfiguration => GetOptions();
+        
+        // 版本号
+        public override string Version => "1.0.0";
+        
+        // 配置页面（第一阶段先返回空，后续添加）
+        public IEnumerable<PluginPageInfo> GetPages()
+        {
+            return new[]
+            {
+                new PluginPageInfo
+                {
+                    Name = "TMDB Original Language",
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.config.html"
+                }
+            };
+        }
     }
 }
