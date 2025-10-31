@@ -1,3 +1,4 @@
+// Pluginconfiguration.cs
 using Emby.Web.GenericEdit;
 using MediaBrowser.Model.Plugins;
 using System.ComponentModel;
@@ -7,10 +8,10 @@ namespace OriginalPoster
     /// <summary>
     /// 插件配置类 - 使用 DisplayName 和 Description 特性来生成友好的 UI
     /// </summary>
-    public class PluginConfiguration : EditableOptionsBase
+    public class OriginaPosterConfig : EditableOptionsBase
     {
         
-        public override string EditorTitle => "原语言海报插件设置";
+        public override string EditorTitle => "OriginalPoster Settings";
         
         /// <summary>
         /// 是否启用插件
@@ -40,16 +41,5 @@ namespace OriginalPoster
         [Description("测试模式下使用的海报图片地址")]
         public string TestPosterUrl { get; set; } = "https://image.tmdb.org/t/p/original/cgZjpqRQt9sk6XMCwZ3B1NPAaoy.jpg";
         
-//        public PluginConfiguration()
-//        {
-//            // 默认值
-//            Enabled = true;
-//            TestMode = true;  // 第一阶段默认开启测试模式
-//            DebugLogging = true;  // 第一阶段默认开启调试日志
-//            
-//            // 测试用海报 - 使用TMDB的一个示例海报
-//            // 这是《肖申克的救赎》的中文海报，用于测试
-//            TestPosterUrl = "https://image.tmdb.org/t/p/original/cgZjpqRQt9sk6XMCwZ3B1NPAaoy.jpg";
-//        }
     }
 }
