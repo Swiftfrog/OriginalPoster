@@ -6,7 +6,7 @@ namespace OriginalPoster
     /// <summary>
     /// 插件配置类 - 使用 DisplayName 和 Description 特性来生成友好的 UI
     /// </summary>
-    public class PluginConfiguration : BasePluginConfiguration
+    public class PluginConfiguration : EditableOptionsBase
     {
         /// <summary>
         /// 是否启用插件
