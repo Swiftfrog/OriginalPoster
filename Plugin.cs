@@ -30,6 +30,33 @@ namespace OriginalPoster
             
             // 第一阶段：启动时输出日志确认插件加载
             Console.WriteLine($"[OriginalPoster] Plugin loaded, version {Version}");
+            // ======================================================
+            // ### 开始调试代码 ###
+            // 临时添加此代码来检查 DLL 中实际嵌入的资源名称
+            try
+            {
+                var assembly = GetType().Assembly;
+                var resourceNames = assembly.GetManifestResourceNames();
+                
+                Console.WriteLine("[OriginalPoster] --- 检查嵌入式资源 ---");
+                if (resourceNames.Length == 0)
+                {
+                    Console.WriteLine("[OriginalPoster] !! 警告：未在此插件 DLL 中找到任何嵌入式资源。");
+                }
+                
+                foreach (var name in resourceNames)
+                {
+                    // 打印出所有找到的资源名
+                    Console.WriteLine($"[OriginalPoster] 发现资源: {name}");
+                }
+                Console.WriteLine("[OriginalPoster] --- 检查结束 ---");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[OriginalPoster] 查找资源时出错: {ex.Message}");
+            }
+            // ### 结束调试代码 ###
+            // ======================================================
         }
         
         // 配置页面（第一阶段先返回空，后续添加）
