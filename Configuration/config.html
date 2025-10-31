@@ -103,7 +103,7 @@
             <div class="form-group">
                 <label for="txtTestPosterUrl">测试海报URL</label>
                 <input type="url" id="txtTestPosterUrl" 
-                       value="https://image.tmdb.org/t/p/original/zGINvGjdlO6TJRu9wESQvWlOKVT.jpg"
+                       value="https://image.tmdb.org/t/p/original/9RLZ48UeVpICPWa7jK2pZPOp2Ve.jpg"
                        placeholder="输入测试用的海报URL">
             </div>
         </div>
@@ -129,23 +129,40 @@
         
         // 加载配置
         function loadConfig() {
-            // 第一阶段简化实现 - 实际应调用Emby API
-            console.log('Loading configuration...');
+            Dashboard.showLoadingMsg();
+            
+            ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                document.getElementById('chkEnabled').checked = config.Enabled;
+                document.getElementById('chkTestMode').checked = config.TestMode;
+                document.getElementById('chkDebugLogging').checked = config.DebugLogging;
+                document.getElementById('txtTestPosterUrl').value = config.TestPosterUrl || '';
+                Dashboard.hideLoadingMsg();
+            }).catch(function (error) {
+                console.error('Failed to load configuration:', error);
+                Dashboard.hideLoadingMsg();
+                showStatus('加载配置失败', 'error');
+            });
         }
         
         // 保存配置
         function saveConfig() {
+            Dashboard.showLoadingMsg();
+            
             const config = {
                 Enabled: document.getElementById('chkEnabled').checked,
                 TestMode: document.getElementById('chkTestMode').checked,
                 DebugLogging: document.getElementById('chkDebugLogging').checked,
-                TestPosterUrl: document.getElementById('txtTestPosterUrl').value
+                TestPosterUrl: document.getElementById('txtTestPosterUrl').value.trim()
             };
             
-            console.log('Saving configuration:', config);
-            
-            // 显示保存成功消息
-            showStatus('设置已保存！请重启Emby Server使更改生效。', 'success');
+            ApiClient.updatePluginConfiguration(pluginId, config).then(function () {
+                Dashboard.hideLoadingMsg();
+                showStatus('设置已保存！', 'success');
+            }).catch(function (error) {
+                console.error('Failed to save configuration:', error);
+                Dashboard.hideLoadingMsg();
+                showStatus('保存配置失败', 'error');
+            });
         }
         
         // 显示状态消息
