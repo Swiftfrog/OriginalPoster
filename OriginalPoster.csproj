@@ -15,9 +15,4 @@
     <PackageReference Include="mediabrowser.server.core" Version="4.9.1.80" />
   </ItemGroup>
 
-  <ItemGroup>
-    <!-- 配置页面HTML文件（第二阶段添加） -->
-    <EmbeddedResource Include="Configuration/config.html" />
-  </ItemGroup>
-
 </Project>
