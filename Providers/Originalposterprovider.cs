@@ -35,6 +35,7 @@ namespace OriginalPoster.Providers
         public OriginalPosterProvider(IHttpClient httpClient, ILogManager logManager)
         {
             _httpClient = httpClient;
+            // 👇 直接使用官方 NullLogger
             _logger = logManager?.GetLogger(GetType().Name) ?? NullLogger.Instance;
             LogDebug("Provider initialized");
         }
@@ -167,19 +168,4 @@ namespace OriginalPoster.Providers
         }
     }
     
-    // 空日志实现，防止空引用
-    public class NullLogger : ILogger
-    {
-        public static readonly NullLogger Instance = new NullLogger();
-        
-        public void Debug(string message, params object[] paramList) { }
-        public void Error(string message, params object[] paramList) { }
-        public void ErrorException(string message, Exception exception, params object[] paramList) { }
-        public void Fatal(string message, params object[] paramList) { }
-        public void FatalException(string message, Exception exception, params object[] paramList) { }
-        public void Info(string message, params object[] paramList) { }
-        public void Log(LogSeverity severity, string message, params object[] paramList) { }
-        public void LogMultiline(string message, LogSeverity severity, System.Text.StringBuilder additionalContent) { }
-        public void Warn(string message, params object[] paramList) { }
-    }
 }
