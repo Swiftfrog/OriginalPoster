@@ -3,6 +3,7 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Configuration;
+using MediaBrowser.Model.Dto;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
 using System;
@@ -10,7 +11,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
-using MediaBrowser.Model.Logging;
 
 namespace OriginalPoster.Providers
 {
@@ -20,7 +20,6 @@ namespace OriginalPoster.Providers
     public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
     {
         private readonly IHttpClient _httpClient;
-        private readonly ILogger _logger;
         
         /// <summary>
         /// 提供者名称（显示在媒体库设置中）
@@ -32,12 +31,9 @@ namespace OriginalPoster.Providers
         /// </summary>
         public int Order => 0;
         
-        public OriginalPosterProvider(IHttpClient httpClient, ILogManager logManager)
+        public OriginalPosterProvider(IHttpClient httpClient)
         {
             _httpClient = httpClient;
-            // 👇 直接使用官方 NullLogger
-            // _logger = logManager?.GetLogger(GetType().Name) ?? NullLogger.Instance;
-            _logger = logManager?.GetLogger(GetType().Name) ?? new NullLogger();
             LogDebug("Provider initialized");
         }
         
@@ -49,7 +45,7 @@ namespace OriginalPoster.Providers
             // 第一阶段只支持电影
             var supported = item is Movie;
             
-            if (supported)
+            if (supported && Plugin.Instance?.Configuration?.DebugLogging == true)
             {
                 LogDebug($"Supports check for {item.Name}: {supported}");
             }
@@ -60,6 +56,7 @@ namespace OriginalPoster.Providers
         /// <summary>
         /// 获取图像列表 - 第一阶段返回测试数据
         /// </summary>
+        
         public Task<IEnumerable<RemoteImageInfo>> GetImages(
             BaseItem item, 
             LibraryOptions libraryOptions, 
@@ -67,52 +64,76 @@ namespace OriginalPoster.Providers
         {
             var config = Plugin.Instance?.Configuration;
             
-            LogInfo($"GetImages called for: {item.Name} (Path: {item.Path})");
-            
+            LogDebug($"GetImages called for: {item.Name}");
+        
             var images = new List<RemoteImageInfo>();
             
-            // 检查配置
-            if (config == null)
+            if (config?.TestMode == true)
             {
-                LogDebug("Configuration is null");
-                return Task.FromResult<IEnumerable<RemoteImageInfo>>(images);
-            }
-            
-            if (!config.Enabled)
-            {
-                LogDebug("Plugin is disabled");
-                return Task.FromResult<IEnumerable<RemoteImageInfo>>(images);
-            }
-            
-            if (config.TestMode)
-            {
-                LogInfo("Test mode enabled, returning test poster");
-                
-                var testUrl = config.TestPosterUrl;
-                if (string.IsNullOrWhiteSpace(testUrl))
-                {
-                    // 使用默认的测试海报
-                    testUrl = "https://image.tmdb.org/t/p/original/zGINvGjdlO6TJRu9wESQvWlOKVT.jpg";
-                }
+                LogDebug("Test mode enabled, returning test poster");
                 
                 images.Add(new RemoteImageInfo
                 {
                     ProviderName = Name,
-                    Type = ImageType.Primary,  // Primary = 海报
-                    Url = testUrl,
-                    ThumbnailUrl = testUrl
+                    Type = ImageType.Primary,
+                    Url = config.TestPosterUrl,
+                    ThumbnailUrl = config.TestPosterUrl,
+                    Language = "zh",
+                    DisplayLanguage = "Chinese",
+                    Width = 1000,
+                    Height = 1500,
+                    CommunityRating = 8.5,
+                    VoteCount = 100,
+                    RatingType = RatingType.Score
                 });
                 
-                LogInfo($"Returning test poster: {testUrl}");
+                LogDebug($"Returning {images.Count} test image(s)");
             }
             else
             {
                 LogDebug("Test mode disabled, returning empty list");
             }
             
-            LogDebug($"Total images to return: {images.Count}");
             return Task.FromResult<IEnumerable<RemoteImageInfo>>(images);
         }
+        
+//        public Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken cancellationToken)
+//        {
+//            var config = Plugin.Instance?.Configuration;
+//            
+//            LogDebug($"GetImages called for: {item.Name}");
+//            
+//            var images = new List<RemoteImageInfo>();
+//            
+//            // 第一阶段：如果是测试模式，返回测试海报
+//            if (config?.TestMode == true)
+//            {
+//                LogDebug("Test mode enabled, returning test poster");
+//                
+//                images.Add(new RemoteImageInfo
+//                {
+//                    ProviderName = Name,
+//                    Type = ImageType.Primary,  // Primary = 海报
+//                    Url = config.TestPosterUrl,
+//                    ThumbnailUrl = config.TestPosterUrl,
+//                    Language = "zh",  // 假设是中文海报
+//                    DisplayLanguage = "Chinese",
+//                    Width = 1000,
+//                    Height = 1500,
+//                    CommunityRating = 8.5,
+//                    VoteCount = 100,
+//                    RatingType = RatingType.Score
+//                });
+//                
+//                LogDebug($"Returning {images.Count} test image(s)");
+//            }
+//            else
+//            {
+//                LogDebug("Test mode disabled, returning empty list");
+//            }
+//            
+//            return Task.FromResult<IEnumerable<RemoteImageInfo>>(images);
+//        }
         
         /// <summary>
         /// 获取支持的图像类型
@@ -132,41 +153,24 @@ namespace OriginalPoster.Providers
             return imageType == ImageType.Primary && Supports(item);
         }
         
-        /// <summary>
-        /// 获取图像响应
-        /// </summary>
         public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken cancellationToken)
         {
-            LogDebug($"GetImageResponse called for URL: {url}");
-            
             return _httpClient.GetResponse(new HttpRequestOptions
             {
                 Url = url,
-                CancellationToken = cancellationToken,
-                BufferContent = false
+                CancellationToken = cancellationToken
             });
         }
         
         /// <summary>
-        /// 信息日志
-        /// </summary>
-        private void LogInfo(string message)
-        {
-            _logger?.Info($"[OriginalPoster] {message}");
-            Console.WriteLine($"[OriginalPoster] INFO: {DateTime.Now:HH:mm:ss} {message}");
-        }
-        
-        /// <summary>
-        /// 调试日志
+        /// 调试日志输出
         /// </summary>
         private void LogDebug(string message)
         {
             if (Plugin.Instance?.Configuration?.DebugLogging == true)
             {
-                _logger?.Debug($"[OriginalPoster] {message}");
-                Console.WriteLine($"[OriginalPoster] DEBUG: {DateTime.Now:HH:mm:ss} {message}");
+                Console.WriteLine($"[OriginalPoster] {DateTime.Now:HH:mm:ss} {message}");
             }
         }
     }
-    
 }
