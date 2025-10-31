@@ -3,185 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <title>TMDB Original Language Settings</title>
-    <style>
-        .page-content {
-            padding: 20px;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
-        .section {
-            margin-bottom: 30px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-        }
-        input[type="text"], input[type="url"] {
-            width: 100%;
-            max-width: 500px;
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        input[type="checkbox"] {
-            margin-right: 8px;
-        }
-        .checkbox-label {
-            font-weight: normal;
-        }
-        button {
-            background-color: #52B54B;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        button:hover {
-            background-color: #429a3c;
-        }
-        .status {
-            padding: 10px;
-            margin-top: 20px;
-            border-radius: 4px;
-            display: none;
-        }
-        .status.success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .status.error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .test-info {
-            background-color: #d1ecf1;
-            color: #0c5460;
-            padding: 15px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-        }
-    </style>
 </head>
 <body>
-    <div class="page-content">
-        <h1>TMDB Original Poster - 第一阶段测试版</h1>
-        
-        <div class="test-info">
-            <strong>测试模式：</strong> 当前版本处于测试阶段，会返回预设的测试海报。
+    <div id="tmdbOriginalLanguageConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox">
+        <div data-role="content">
+            <div class="content-primary">
+                <form id="tmdbOriginalLanguageConfigForm">
+                    <div class="sectionTitleContainer">
+                        <h2>TMDB Original Language - Test Mode</h2>
+                    </div>
+                    <div class="verticalSection">
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input type="checkbox" is="emby-checkbox" id="chkEnabled" />
+                                <span>Enable Plugin</span>
+                            </label>
+                            <div class="fieldDescription">Enable or disable the plugin</div>
+                        </div>
+                        
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input type="checkbox" is="emby-checkbox" id="chkTestMode" />
+                                <span>Test Mode</span>
+                            </label>
+                            <div class="fieldDescription">Return test poster for all movies</div>
+                        </div>
+                        
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input type="checkbox" is="emby-checkbox" id="chkDebugLogging" />
+                                <span>Debug Logging</span>
+                            </label>
+                            <div class="fieldDescription">Enable detailed logging to help troubleshoot issues</div>
+                        </div>
+                        
+                        <div class="inputContainer">
+                            <label for="txtTestPosterUrl">Test Poster URL</label>
+                            <input type="text" id="txtTestPosterUrl" is="emby-input" />
+                            <div class="fieldDescription">URL of the test poster image</div>
+                        </div>
+                        
+                        <div>
+                            <button is="emby-button" type="submit" class="raised button-submit block">
+                                <span>Save</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="verticalSection">
+                        <h3>Instructions</h3>
+                        <ol>
+                            <li>Enable the plugin</li>
+                            <li>In library settings, enable "TMDB Original Language" image fetcher</li>
+                            <li>Refresh movie metadata to fetch test posters</li>
+                            <li>Check Emby logs for plugin activity</li>
+                        </ol>
+                    </div>
+                </form>
+            </div>
         </div>
         
-        <div class="section">
-            <h2>基础设置</h2>
-            
-            <div class="form-group">
-                <label class="checkbox-label">
-                    <input type="checkbox" id="chkEnabled" checked>
-                    启用插件
-                </label>
-            </div>
-            
-            <div class="form-group">
-                <label class="checkbox-label">
-                    <input type="checkbox" id="chkTestMode" checked>
-                    测试模式（返回测试海报）
-                </label>
-            </div>
-            
-            <div class="form-group">
-                <label class="checkbox-label">
-                    <input type="checkbox" id="chkDebugLogging" checked>
-                    启用调试日志
-                </label>
-            </div>
-            
-            <div class="form-group">
-                <label for="txtTestPosterUrl">测试海报URL</label>
-                <input type="url" id="txtTestPosterUrl" 
-                       value="https://image.tmdb.org/t/p/original/9RLZ48UeVpICPWa7jK2pZPOp2Ve.jpg"
-                       placeholder="输入测试用的海报URL">
-            </div>
-        </div>
-        
-        <button onclick="saveConfig()">保存设置</button>
-        
-        <div id="status" class="status"></div>
-        
-        <div class="section" style="margin-top: 40px;">
-            <h3>使用说明</h3>
-            <ol>
-                <li>确保插件已启用</li>
-                <li>在媒体库设置中，启用 "TMDB Original Language" 图像获取器</li>
-                <li>刷新电影元数据时，将会获取测试海报</li>
-                <li>查看Emby日志确认插件运行状态</li>
-            </ol>
-        </div>
-    </div>
-    
-    <script type="text/javascript">
-        // 插件ID - 需要与Plugin.cs中的ID匹配
-        const pluginId = '2DE6B212-1C77-EFBC-8B95-A45F6DAE8921';
-        
-        // 加载配置
-        function loadConfig() {
-            Dashboard.showLoadingMsg();
-            
-            ApiClient.getPluginConfiguration(pluginId).then(function (config) {
-                document.getElementById('chkEnabled').checked = config.Enabled;
-                document.getElementById('chkTestMode').checked = config.TestMode;
-                document.getElementById('chkDebugLogging').checked = config.DebugLogging;
-                document.getElementById('txtTestPosterUrl').value = config.TestPosterUrl || '';
-                Dashboard.hideLoadingMsg();
-            }).catch(function (error) {
-                console.error('Failed to load configuration:', error);
-                Dashboard.hideLoadingMsg();
-                showStatus('加载配置失败', 'error');
-            });
-        }
-        
-        // 保存配置
-        function saveConfig() {
-            Dashboard.showLoadingMsg();
-            
-            const config = {
-                Enabled: document.getElementById('chkEnabled').checked,
-                TestMode: document.getElementById('chkTestMode').checked,
-                DebugLogging: document.getElementById('chkDebugLogging').checked,
-                TestPosterUrl: document.getElementById('txtTestPosterUrl').value.trim()
+        <script type="text/javascript">
+            var TmdbOriginalLanguageConfig = {
+                pluginId: '2DE6B212-1C77-EFBC-8B95-A45F6DAE8921',
+                
+                loadConfiguration: function(page) {
+                    Dashboard.showLoadingMsg();
+                    
+                    ApiClient.getPluginConfiguration(TmdbOriginalLanguageConfig.pluginId).then(function(config) {
+                        page.querySelector('#chkEnabled').checked = config.Enabled !== false;
+                        page.querySelector('#chkTestMode').checked = config.TestMode !== false;
+                        page.querySelector('#chkDebugLogging').checked = config.DebugLogging !== false;
+                        page.querySelector('#txtTestPosterUrl').value = config.TestPosterUrl || 'https://image.tmdb.org/t/p/original/zGINvGjdlO6TJRu9wESQvWlOKVT.jpg';
+                        
+                        Dashboard.hideLoadingMsg();
+                    }).catch(function() {
+                        Dashboard.hideLoadingMsg();
+                        Dashboard.alert('Failed to load plugin configuration.');
+                    });
+                },
+                
+                saveConfiguration: function(page) {
+                    Dashboard.showLoadingMsg();
+                    
+                    var config = {
+                        Enabled: page.querySelector('#chkEnabled').checked,
+                        TestMode: page.querySelector('#chkTestMode').checked,
+                        DebugLogging: page.querySelector('#chkDebugLogging').checked,
+                        TestPosterUrl: page.querySelector('#txtTestPosterUrl').value || ''
+                    };
+                    
+                    ApiClient.updatePluginConfiguration(TmdbOriginalLanguageConfig.pluginId, config).then(function() {
+                        Dashboard.hideLoadingMsg();
+                        Dashboard.processPluginConfigurationUpdateResult();
+                    }).catch(function() {
+                        Dashboard.hideLoadingMsg();
+                        Dashboard.alert('Failed to save plugin configuration.');
+                    });
+                }
             };
             
-            ApiClient.updatePluginConfiguration(pluginId, config).then(function () {
-                Dashboard.hideLoadingMsg();
-                showStatus('设置已保存！', 'success');
-            }).catch(function (error) {
-                console.error('Failed to save configuration:', error);
-                Dashboard.hideLoadingMsg();
-                showStatus('保存配置失败', 'error');
-            });
-        }
-        
-        // 显示状态消息
-        function showStatus(message, type) {
-            const statusDiv = document.getElementById('status');
-            statusDiv.textContent = message;
-            statusDiv.className = 'status ' + type;
-            statusDiv.style.display = 'block';
-            
-            setTimeout(() => {
-                statusDiv.style.display = 'none';
-            }, 5000);
-        }
-        
-        // 页面加载时初始化
-        document.addEventListener('DOMContentLoaded', function() {
-            loadConfig();
-        });
-    </script>
+            (function() {
+                document.getElementById('tmdbOriginalLanguageConfigForm').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    TmdbOriginalLanguageConfig.saveConfiguration(e.target.closest('.page'));
+                    return false;
+                });
+                
+                document.getElementById('tmdbOriginalLanguageConfigPage').addEventListener('pageshow', function() {
+                    TmdbOriginalLanguageConfig.loadConfiguration(this);
+                });
+            })();
+        </script>
+    </div>
 </body>
 </html>
