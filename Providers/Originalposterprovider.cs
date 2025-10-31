@@ -54,15 +54,18 @@ namespace EmbyOriginalPosterPlugin.Providers
         /// <summary>
         /// 获取图像列表 - 第一阶段返回测试数据
         /// </summary>
-        public Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken cancellationToken)
+        
+        public Task<IEnumerable<RemoteImageInfo>> GetImages(
+            BaseItem item, 
+            LibraryOptions libraryOptions, 
+            CancellationToken cancellationToken)
         {
             var config = Plugin.Instance?.Configuration;
             
             LogDebug($"GetImages called for: {item.Name}");
-            
+        
             var images = new List<RemoteImageInfo>();
             
-            // 第一阶段：如果是测试模式，返回测试海报
             if (config?.TestMode == true)
             {
                 LogDebug("Test mode enabled, returning test poster");
@@ -70,10 +73,10 @@ namespace EmbyOriginalPosterPlugin.Providers
                 images.Add(new RemoteImageInfo
                 {
                     ProviderName = Name,
-                    Type = ImageType.Primary,  // Primary = 海报
+                    Type = ImageType.Primary,
                     Url = config.TestPosterUrl,
                     ThumbnailUrl = config.TestPosterUrl,
-                    Language = "zh",  // 假设是中文海报
+                    Language = "zh",
                     DisplayLanguage = "Chinese",
                     Width = 1000,
                     Height = 1500,
@@ -91,6 +94,44 @@ namespace EmbyOriginalPosterPlugin.Providers
             
             return Task.FromResult<IEnumerable<RemoteImageInfo>>(images);
         }
+        
+//        public Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken cancellationToken)
+//        {
+//            var config = Plugin.Instance?.Configuration;
+//            
+//            LogDebug($"GetImages called for: {item.Name}");
+//            
+//            var images = new List<RemoteImageInfo>();
+//            
+//            // 第一阶段：如果是测试模式，返回测试海报
+//            if (config?.TestMode == true)
+//            {
+//                LogDebug("Test mode enabled, returning test poster");
+//                
+//                images.Add(new RemoteImageInfo
+//                {
+//                    ProviderName = Name,
+//                    Type = ImageType.Primary,  // Primary = 海报
+//                    Url = config.TestPosterUrl,
+//                    ThumbnailUrl = config.TestPosterUrl,
+//                    Language = "zh",  // 假设是中文海报
+//                    DisplayLanguage = "Chinese",
+//                    Width = 1000,
+//                    Height = 1500,
+//                    CommunityRating = 8.5,
+//                    VoteCount = 100,
+//                    RatingType = RatingType.Score
+//                });
+//                
+//                LogDebug($"Returning {images.Count} test image(s)");
+//            }
+//            else
+//            {
+//                LogDebug("Test mode disabled, returning empty list");
+//            }
+//            
+//            return Task.FromResult<IEnumerable<RemoteImageInfo>>(images);
+//        }
         
         /// <summary>
         /// 获取支持的图像类型
