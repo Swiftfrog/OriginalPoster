@@ -32,9 +32,6 @@ namespace EmbyOriginalPosterPlugin
             Console.WriteLine($"[OriginalPoster] Plugin loaded, version {Version}");
         }
         
-        // 版本号
-        public override string Version => "1.0.0";
-        
         // 配置页面（第一阶段先返回空，后续添加）
         public IEnumerable<PluginPageInfo> GetPages()
         {
