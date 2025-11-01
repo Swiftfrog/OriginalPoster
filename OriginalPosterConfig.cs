@@ -27,13 +27,10 @@ namespace OriginalPoster
         [Description("在 https://www.themoviedb.org/settings/api 获取")]
         public string TmdbApiKey { get; set; } = string.Empty;
         
-        /// <summary>
-        /// 海报选择策略
-        /// </summary>
         [DisplayName("海报选择策略")]
         [Description("选择原语言海报时的优先级策略")]
         public PosterSelectionStrategy PosterSelectionStrategy { get; set; } = PosterSelectionStrategy.OriginalLanguageFirst;
-        
+
         /// <summary>
         /// 测试模式 - 第一阶段使用，返回测试数据
         /// </summary>
@@ -58,7 +55,7 @@ namespace OriginalPoster
     }
 
     /// <summary>
-    /// 海报选择策略枚举
+    /// 海报选择策略
     /// </summary>
     public enum PosterSelectionStrategy
     {
@@ -72,7 +69,13 @@ namespace OriginalPoster
         /// 优先高评分（可能选到 null 无文字海报）
         /// </summary>
         [Description("优先高评分")]
-        HighestRatingFirst
+        HighestRatingFirst,
+    
+        /// <summary>
+        /// 优先无文字海报（iso_639_1 == null）
+        /// </summary>
+        [Description("优先无文字海报")]
+        NoTextPosterFirst
     }
 
 }

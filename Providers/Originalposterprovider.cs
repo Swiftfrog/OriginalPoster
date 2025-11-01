@@ -105,7 +105,8 @@ namespace OriginalPoster.Providers
                 _logger?.Debug("[OriginalPoster] Fetching images for TMDB ID: {0}, language: {1}", tmdbId, targetLanguage);
                 var result = await tmdbClient.GetImagesAsync(tmdbId, item is Movie, targetLanguage, cancellationToken);
 
-                images = ConvertToRemoteImageInfo(result, targetLanguage);
+                //images = ConvertToRemoteImageInfo(result, targetLanguage);
+                images = ConvertToRemoteImageInfo(result, targetLanguage, config.PosterSelectionStrategy);
                 _logger?.Debug("[OriginalPoster] Fetched {0} images from TMDB", images.Count());
             }
             catch (Exception ex)
@@ -127,60 +128,74 @@ namespace OriginalPoster.Providers
         }
 
 
-        private IEnumerable<RemoteImageInfo> ConvertToRemoteImageInfo(TmdbImageResult tmdbResult, string targetLanguage)
+        private IEnumerable<RemoteImageInfo> ConvertToRemoteImageInfo(
+            TmdbImageResult tmdbResult,
+            string targetLanguage,
+            PosterSelectionStrategy strategy)
         {
             if (tmdbResult?.posters == null || tmdbResult.posters.Length == 0)
                 return Array.Empty<RemoteImageInfo>();
         
-            var candidates = new List<(TmdbImage Poster, string DisplayLanguage, string SortLanguage)>();
-        
-            foreach (var poster in tmdbResult.posters)
-            {
-                if (string.IsNullOrEmpty(poster.file_path))
-                    continue;
-        
-                string originalLang = poster.iso_639_1; // 保留原始语言（可能为 null）
-                string displayLang = originalLang ?? targetLanguage;
-                string sortLang = originalLang ?? "null"; // 用于排序：null 单独处理
-        
-                candidates.Add((poster, displayLang, sortLang));
-            }
-        
-            // 排序：1. 目标语言  2. null  3. 其他
-            var sorted = candidates
-                .OrderByDescending(x =>
+            // 构建候选列表，保留原始语言信息
+            var candidates = tmdbResult.posters
+                .Where(p => !string.IsNullOrEmpty(p.file_path))
+                .Select(poster => new
                 {
-                    if (x.sortLang == targetLanguage) return 3;
-                    if (x.sortLang == "null") return 2;
-                    return 1;
+                    Poster = poster,
+                    OriginalLang = poster.iso_639_1,           // 原始语言（可能为 null）
+                    DisplayLang = poster.iso_639_1 ?? targetLanguage // 显示语言
                 })
-                .ThenByDescending(x => x.Poster.vote_average);
+                .ToList();
         
-            var result = new List<RemoteImageInfo>();
-            foreach (var item in sorted)
+            IOrderedEnumerable<dynamic> sorted;
+        
+            switch (strategy)
             {
-                result.Add(new RemoteImageInfo
-                {
-                    ProviderName = Name,
-                    Type = ImageType.Primary,
-                    Url = $"https://image.tmdb.org/t/p/original{item.Poster.file_path}",
-                    ThumbnailUrl = $"https://image.tmdb.org/t/p/w500{item.Poster.file_path}",
-                    Language = item.DisplayLanguage, // 显示时用 fallback
-                    DisplayLanguage = GetDisplayLanguage(item.DisplayLanguage),
-                    Width = item.Poster.width,
-                    Height = item.Poster.height,
-                    CommunityRating = item.Poster.vote_average,
-                    VoteCount = item.Poster.vote_count,
-                    RatingType = RatingType.Score
-                });
+                case PosterSelectionStrategy.OriginalLanguageFirst:
+                    sorted = candidates
+                        .OrderByDescending(x =>
+                        {
+                            if (x.OriginalLang == targetLanguage) return 3; // 原生语言
+                            if (x.OriginalLang == null) return 2;           // 无文字
+                            return 1;                                       // 其他语言
+                        })
+                        .ThenByDescending(x => x.Poster.vote_average);
+                    break;
+        
+                case PosterSelectionStrategy.HighestRatingFirst:
+                    sorted = candidates.OrderByDescending(x => x.Poster.vote_average);
+                    break;
+        
+                case PosterSelectionStrategy.NoTextPosterFirst:
+                    sorted = candidates
+                        .OrderByDescending(x =>
+                        {
+                            if (x.OriginalLang == null) return 3;           // 无文字最高
+                            if (x.OriginalLang == targetLanguage) return 2; // 原生语言次之
+                            return 1;                                       // 其他语言最后
+                        })
+                        .ThenByDescending(x => x.Poster.vote_average);
+                    break;
+        
+                default:
+                    sorted = candidates.OrderByDescending(x => x.Poster.vote_average);
+                    break;
             }
         
-            if (result.Count > 0)
+            return sorted.Select(x => new RemoteImageInfo
             {
-                _logger?.Info("[OriginalPoster] First image URL: {0}", result[0].Url);
-            }
-        
-            return result;
+                ProviderName = Name,
+                Type = ImageType.Primary,
+                Url = $"https://image.tmdb.org/t/p/original{x.Poster.file_path}",
+                ThumbnailUrl = $"https://image.tmdb.org/t/p/w500{x.Poster.file_path}",
+                Language = x.DisplayLang,
+                DisplayLanguage = GetDisplayLanguage(x.DisplayLang),
+                Width = x.Poster.width,
+                Height = x.Poster.height,
+                CommunityRating = x.Poster.vote_average,
+                VoteCount = x.Poster.vote_count,
+                RatingType = RatingType.Score
+            });
         }
 
 //        private IEnumerable<RemoteImageInfo> ConvertToRemoteImageInfo(TmdbImageResult tmdbResult, string fallbackLanguage)
