@@ -19,12 +19,6 @@ namespace OriginalPoster.Services
         private readonly IJsonSerializer _jsonSerializer;
         private readonly string _apiKey;
 
-        /// <summary>
-        /// 构造函数
-        /// </summary>
-        /// <param name="httpClient">Emby 注入的 HTTP 客户端</param>
-        /// <param name="jsonSerializer">Emby 注入的 JSON 序列化器</param>
-        /// <param name="apiKey">TMDB API 密钥</param>
         public TmdbClient(IHttpClient httpClient, IJsonSerializer jsonSerializer, string apiKey)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
@@ -33,13 +27,36 @@ namespace OriginalPoster.Services
         }
 
         /// <summary>
+        /// 获取项目详情（用于获取 production_countries）
+        /// </summary>
+        public async Task<TmdbItemDetails> GetItemDetailsAsync(
+            string tmdbId,
+            bool isMovie,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(tmdbId))
+                throw new ArgumentException("TMDB ID cannot be null or empty.", nameof(tmdbId));
+
+            var type = isMovie ? "movie" : "tv";
+            var url = $"{BaseUrl}/{type}/{tmdbId}?api_key={_apiKey}";
+
+            var options = new HttpRequestOptions
+            {
+                Url = url,
+                CancellationToken = cancellationToken,
+                TimeoutMs = 10000
+            };
+
+            using (var response = await _httpClient.GetResponse(options).ConfigureAwait(false))
+            using (var stream = response.Content)
+            {
+                return await _jsonSerializer.DeserializeFromStreamAsync<TmdbItemDetails>(stream).ConfigureAwait(false);
+            }
+        }
+
+        /// <summary>
         /// 获取指定项目（电影/剧集）的图像列表
         /// </summary>
-        /// <param name="tmdbId">TMDB ID</param>
-        /// <param name="isMovie">是否为电影</param>
-        /// <param name="language">目标语言代码（如 "en"）</param>
-        /// <param name="cancellationToken">取消令牌</param>
-        /// <returns>图像结果</returns>
         public async Task<TmdbImageResult> GetImagesAsync(
             string tmdbId,
             bool isMovie,
@@ -50,9 +67,6 @@ namespace OriginalPoster.Services
                 throw new ArgumentException("TMDB ID cannot be null or empty.", nameof(tmdbId));
 
             var type = isMovie ? "movie" : "tv";
-
-            // 关键：使用 include_image_language={lang},null 同时获取目标语言和无文字海报
-            // 参考 TMDB 官方文档 [[20]], [[26]]
             var url = $"{BaseUrl}/{type}/{tmdbId}/images?" +
                       $"api_key={_apiKey}&" +
                       $"include_image_language={language},null";

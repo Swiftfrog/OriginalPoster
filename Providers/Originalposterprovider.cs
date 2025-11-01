@@ -1,4 +1,4 @@
-// Originalposterprovider.cs
+// Providers/Originalposterprovider.cs
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
@@ -8,9 +8,9 @@ using MediaBrowser.Model.Dto;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Providers;
-using MediaBrowser.Model.Serialization; // 新增 using
-using OriginalPoster.Models;           // 新增 using
-using OriginalPoster.Services;         // 新增 using
+using MediaBrowser.Model.Serialization;
+using OriginalPoster.Models;
+using OriginalPoster.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,18 +20,17 @@ using System.Threading.Tasks;
 namespace OriginalPoster.Providers
 {
     /// <summary>
-    /// 原语言海报提供者 - 第二阶段：支持从 TMDB 获取固定语言（英文）海报
+    /// 原语言海报提供者 - 第三阶段：支持自动识别原语言
     /// </summary>
     public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
     {
         private readonly IHttpClient _httpClient;
         private readonly ILogger _logger;
-        private readonly IJsonSerializer _jsonSerializer; // 新增字段
+        private readonly IJsonSerializer _jsonSerializer;
 
         public string Name => "TMDB Original Language";
         public int Order => 0;
 
-        // 修改构造函数：注入 IJsonSerializer
         public OriginalPosterProvider(IHttpClient httpClient, ILogger logger, IJsonSerializer jsonSerializer)
         {
             _httpClient = httpClient;
@@ -54,9 +53,7 @@ namespace OriginalPoster.Providers
         {
             var config = Plugin.Instance?.Configuration;
             _logger?.Debug("[OriginalPoster] GetImages called for: {0}", item.Name);
-            
-            // 默认返回空列表
-            //var images = Array.Empty<RemoteImageInfo>();
+
             var images = Enumerable.Empty<RemoteImageInfo>();
 
             // === 第一阶段：测试模式 ===
@@ -67,7 +64,7 @@ namespace OriginalPoster.Providers
                 {
                     ProviderName = Name,
                     Type = ImageType.Primary,
-                    Url = config.TestPosterUrl.Trim(), // 防止多余空格
+                    Url = config.TestPosterUrl.Trim(),
                     ThumbnailUrl = config.TestPosterUrl.Trim(),
                     Language = "zh",
                     DisplayLanguage = "Chinese",
@@ -81,37 +78,42 @@ namespace OriginalPoster.Providers
                 return new[] { testImage };
             }
 
-            // === 第二阶段：真实 TMDB 调用 ===
+            // === 第三阶段：自动语言识别 ===
             var tmdbId = GetTmdbId(item);
             if (string.IsNullOrEmpty(tmdbId))
             {
                 _logger?.Debug("[OriginalPoster] No TMDB ID found for item, skipping");
-                return images; // ✅ 显式返回
+                return images;
             }
 
             try
             {
-                // 固定语言：第二阶段目标为 "en"
-                const string targetLanguage = "en";
-                _logger?.Debug("[OriginalPoster] Fetching images for TMDB ID: {0}, language: {1}", tmdbId, targetLanguage);
-
                 var tmdbClient = new TmdbClient(_httpClient, _jsonSerializer, config.TmdbApiKey);
+
+                // 1. 获取项目详情以确定原产国
+                var details = await tmdbClient.GetItemDetailsAsync(tmdbId, item is Movie, cancellationToken);
+                string targetLanguage = "en"; // 默认英语
+
+                if (details?.production_countries?.Length > 0)
+                {
+                    var primaryCountry = details.production_countries[0].iso_3166_1;
+                    targetLanguage = LanguageMapper.GetLanguageForCountry(primaryCountry);
+                    _logger?.Debug("[OriginalPoster] Primary country: {0}, mapped language: {1}", primaryCountry, targetLanguage);
+                }
+
+                // 2. 获取该语言的海报
+                _logger?.Debug("[OriginalPoster] Fetching images for TMDB ID: {0}, language: {1}", tmdbId, targetLanguage);
                 var result = await tmdbClient.GetImagesAsync(tmdbId, item is Movie, targetLanguage, cancellationToken);
 
-                images = ConvertToRemoteImageInfo(result, targetLanguage); // ✅ 关键修复：赋值给 images
+                images = ConvertToRemoteImageInfo(result, targetLanguage);
                 _logger?.Debug("[OriginalPoster] Fetched {0} images from TMDB", images.Count());
-
-                // return remoteImages;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                //_logger?.Error(ex, "[OriginalPoster] Failed to fetch images from TMDB for {0}", item.Name);
-                _logger?.Error("[OriginalPoster] Failed to fetch images from TMDB for {0}", item.Name);
-
+                _logger?.Error(ex, "[OriginalPoster] Failed to fetch images from TMDB for {0}", item.Name);
             }
-            
-            return images; // ✅ 统一返回点
-            
+
+            return images;
         }
 
         private string GetTmdbId(BaseItem item)
@@ -134,6 +136,7 @@ namespace OriginalPoster.Providers
                 if (string.IsNullOrEmpty(poster.file_path))
                     continue;
 
+                // 🔥 修复：删除 URL 中的多余空格！
                 list.Add(new RemoteImageInfo
                 {
                     ProviderName = Name,
@@ -155,19 +158,38 @@ namespace OriginalPoster.Providers
                 _logger?.Info("[OriginalPoster] First image URL: {0}", list[0].Url);
             }
 
-            // 按评分降序排列
             return list.OrderByDescending(img => img.CommunityRating ?? 0);
         }
 
         private string GetDisplayLanguage(string langCode)
         {
-            // 简单映射，后续可扩展
             return langCode switch
             {
                 "en" => "English",
                 "zh" => "Chinese",
                 "ja" => "Japanese",
                 "ko" => "Korean",
+                "fr" => "French",
+                "de" => "German",
+                "es" => "Spanish",
+                "it" => "Italian",
+                "ru" => "Russian",
+                "ar" => "Arabic",
+                "hi" => "Hindi",
+                "th" => "Thai",
+                "pt" => "Portuguese",
+                "nl" => "Dutch",
+                "sv" => "Swedish",
+                "no" => "Norwegian",
+                "da" => "Danish",
+                "fi" => "Finnish",
+                "pl" => "Polish",
+                "cs" => "Czech",
+                "hu" => "Hungarian",
+                "el" => "Greek",
+                "tr" => "Turkish",
+                "he" => "Hebrew",
+                "fa" => "Persian",
                 _ => langCode.ToUpperInvariant()
             };
         }

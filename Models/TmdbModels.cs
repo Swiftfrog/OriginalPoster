@@ -52,7 +52,6 @@ namespace OriginalPoster.Models
         /// 图像语言代码（可能为 null，表示无文字）
         /// </summary>
         public string iso_639_1 { get; set; }
-
         public double vote_average { get; set; }
         public int vote_count { get; set; }
     }
