@@ -90,7 +90,7 @@ namespace OriginalPoster.Providers
                     RatingType = RatingType.Score
                 });
                 
-                _logger?.Debug("[OriginalPoster] Returning {ImagesCount} test image(s)", image.Count);
+                _logger?.Debug("[OriginalPoster] Returning {ImagesCount} test image(s)", images.Count);
             }
             else
             {
