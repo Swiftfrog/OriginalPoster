@@ -21,6 +21,13 @@ namespace OriginalPoster
         public bool Enabled { get; set; } = true;
         
         /// <summary>
+        /// TMDB API 密钥
+        /// </summary>
+        [DisplayName("TMDB API KEY")]
+        [Description("在 https://www.themoviedb.org/settings/api 获取")]
+        public string TmdbApiKey { get; set; } = string.Empty;
+        
+        /// <summary>
         /// 测试模式 - 第一阶段使用，返回测试数据
         /// </summary>
         [DisplayName("测试模式")]

@@ -49,7 +49,8 @@ namespace OriginalPoster.Providers
             // 第一阶段只支持电影
             var supported = item is Movie;
             
-            _logger?.Debug("[OriginalPoster]: Supports check for {item.Name}: {supported}");
+            // _logger?.Debug("[OriginalPoster]: Supports check for {item.Name}: {supported}");
+            _logger.Debug("[OriginalPoster] Supports check for {ItemName}: {IsSupported}", item.Name, supported);
             
             return supported;
         }
@@ -65,13 +66,14 @@ namespace OriginalPoster.Providers
         {
             var config = Plugin.Instance?.Configuration;
             
-            _logger?.Debug("[OriginalPoster]: GetImages called for: {item.Name}");
+            // _logger?.Debug("[OriginalPoster]: GetImages called for: {item.Name}");
+            _logger?.Debug("[OriginalPoster] GetImages called for: {ItemName}", item.Name);
         
             var images = new List<RemoteImageInfo>();
             
             if (config?.TestMode == true)
             {
-                _logger?.Debug("[OriginalPoster]: Test mode enabled, returning test poster");
+                _logger?.Debug("[OriginalPoster] Test mode enabled, returning test poster");
                 
                 images.Add(new RemoteImageInfo
                 {
@@ -88,11 +90,11 @@ namespace OriginalPoster.Providers
                     RatingType = RatingType.Score
                 });
                 
-                _logger?.Debug("[OriginalPoster]: Returning {images.Count} test image(s)");
+                _logger?.Debug("[OriginalPoster] Returning {ImagesCount} test image(s)", image.Count);
             }
             else
             {
-                _logger?.Info("[OriginalPoster]: Test mode disabled, returning empty list");
+                _logger?.Info("[OriginalPoster] Test mode disabled, returning empty list");
             }
             
             return Task.FromResult<IEnumerable<RemoteImageInfo>>(images);
