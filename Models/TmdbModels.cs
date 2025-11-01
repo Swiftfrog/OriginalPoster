@@ -23,6 +23,14 @@ namespace OriginalPoster.Models
         public string iso_3166_1 { get; set; }
         public string name { get; set; }
     }
+    
+    // Models/TmdbModels.cs
+    public class TmdbItemDetails
+    {
+        public string id { get; set; }
+        public string original_language { get; set; }
+        public ProductionCountry[] production_countries { get; set; }
+    }
 
     /// <summary>
     /// TMDB 图像响应结果（/images 接口）
@@ -55,4 +63,5 @@ namespace OriginalPoster.Models
         public double vote_average { get; set; }
         public int vote_count { get; set; }
     }
+
 }
