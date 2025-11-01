@@ -191,8 +191,10 @@ namespace OriginalPoster.Providers
                 DisplayLanguage = GetDisplayLanguage(x.DisplayLang),
                 Width = x.Poster.width,
                 Height = x.Poster.height,
-                // ✅ 关键：所有海报评分 +10，确保 Emby 优先选择你的结果
-                CommunityRating = x.Poster.vote_average + 10,
+                // 给我需要的海报评分 +10，确保 Emby 优先选择你的结果，只给原语言和无文字海报加分，优先评分的不需要在分数上干预。
+                CommunityRating = (x.OriginalLang == targetLanguage || x.OriginalLang == null)
+                    ? x.Poster.vote_average + 10
+                    : x.Poster.vote_average,
                 VoteCount = x.Poster.vote_count,
                 RatingType = RatingType.Score
             }).ToList(); // 转为 List 以便取前几项
