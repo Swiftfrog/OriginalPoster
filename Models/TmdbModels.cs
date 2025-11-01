@@ -9,6 +9,7 @@ namespace OriginalPoster.Models
     public class TmdbItemDetails
     {
         public string id { get; set; }
+        public string original_language { get; set; }
         public ProductionCountry[] production_countries { get; set; }
     }
 
@@ -24,14 +25,6 @@ namespace OriginalPoster.Models
         public string name { get; set; }
     }
     
-    // Models/TmdbModels.cs
-    public class TmdbItemDetails
-    {
-        public string id { get; set; }
-        public string original_language { get; set; }
-        public ProductionCountry[] production_countries { get; set; }
-    }
-
     /// <summary>
     /// TMDB 图像响应结果（/images 接口）
     /// </summary>
