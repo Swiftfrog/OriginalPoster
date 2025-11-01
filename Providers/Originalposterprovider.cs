@@ -192,7 +192,11 @@ namespace OriginalPoster.Providers
                 DisplayLanguage = GetDisplayLanguage(x.DisplayLang),
                 Width = x.Poster.width,
                 Height = x.Poster.height,
-                CommunityRating = x.Poster.vote_average,
+                //CommunityRating = x.Poster.vote_average,
+                // ✅ 关键修改：原语言海报评分 +10
+                CommunityRating = x.OriginalLang == targetLanguage 
+                    ? x.Poster.vote_average + 10 
+                    : x.Poster.vote_average,
                 VoteCount = x.Poster.vote_count,
                 RatingType = RatingType.Score
             }).ToList(); // 转为 List 以便取前几项
