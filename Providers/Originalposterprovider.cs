@@ -181,8 +181,8 @@ namespace OriginalPoster.Providers
                     sorted = candidates.OrderByDescending(x => x.Poster.vote_average);
                     break;
             }
-        
-            return sorted.Select(x => new RemoteImageInfo
+            
+            var result = sorted.Select(x => new RemoteImageInfo
             {
                 ProviderName = Name,
                 Type = ImageType.Primary,
@@ -195,7 +195,33 @@ namespace OriginalPoster.Providers
                 CommunityRating = x.Poster.vote_average,
                 VoteCount = x.Poster.vote_count,
                 RatingType = RatingType.Score
-            });
+            }).ToList(); // 转为 List 以便取前几项
+        
+            // ✅ 新增日志：记录返回的前3张图片
+            var top3 = result.Take(3).ToList();
+            for (int i = 0; i < top3.Count; i++)
+            {
+                var img = top3[i];
+                _logger?.Info("[OriginalPoster] Returned image #{0}: URL={1}, Language={2}, Rating={3}",
+                    i + 1, img.Url, img.Language, img.CommunityRating);
+            }
+        
+            return result; 
+        
+//            return sorted.Select(x => new RemoteImageInfo
+//            {
+//                ProviderName = Name,
+//                Type = ImageType.Primary,
+//                Url = $"https://image.tmdb.org/t/p/original{x.Poster.file_path}",
+//                ThumbnailUrl = $"https://image.tmdb.org/t/p/w500{x.Poster.file_path}",
+//                Language = x.DisplayLang,
+//                DisplayLanguage = GetDisplayLanguage(x.DisplayLang),
+//                Width = x.Poster.width,
+//                Height = x.Poster.height,
+//                CommunityRating = x.Poster.vote_average,
+//                VoteCount = x.Poster.vote_count,
+//                RatingType = RatingType.Score
+//            });
         }
 
 //        private IEnumerable<RemoteImageInfo> ConvertToRemoteImageInfo(TmdbImageResult tmdbResult, string fallbackLanguage)
@@ -278,6 +304,9 @@ namespace OriginalPoster.Providers
 
         public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken cancellationToken)
         {
+            // ✅ 新增日志：记录 Emby 实际请求的图片（即最终选中的）
+            _logger?.Info("[OriginalPoster] Emby selected image for download: {0}", url);
+            
             return _httpClient.GetResponse(new HttpRequestOptions
             {
                 Url = url,
