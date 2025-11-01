@@ -149,6 +149,11 @@ namespace OriginalPoster.Providers
                 });
             }
 
+            if (list.Count > 0)
+            {
+                _logger?.Info("[OriginalPoster] First image URL: {0}", list[0].Url);
+            }
+
             // 按评分降序排列
             return list.OrderByDescending(img => img.CommunityRating ?? 0);
         }
