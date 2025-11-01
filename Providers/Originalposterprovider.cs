@@ -92,7 +92,7 @@ namespace OriginalPoster.Providers
 
                 // 1. 获取项目详情以确定原产国
                 var details = await tmdbClient.GetItemDetailsAsync(tmdbId, item is Movie, cancellationToken);
-                string targetLanguage = "en"; // 默认英语
+                string targetLanguage = "ko"; // 默认英语
 
                 // ✅ 优先使用 original_language
                 if (!string.IsNullOrEmpty(details.original_language))
