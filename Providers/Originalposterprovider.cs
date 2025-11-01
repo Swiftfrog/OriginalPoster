@@ -127,16 +127,13 @@ namespace OriginalPoster.Providers
             return null;
         }
 
-
 		// 替换 OriginalPosterProvider.cs 中现有的 ConvertToRemoteImageInfo 方法
 		private IEnumerable<RemoteImageInfo> ConvertToRemoteImageInfo(
 		    TmdbImageResult tmdbResult,
 		    string targetLanguage,
 		    PosterSelectionStrategy strategy)
 		{
-		    if (tmdbResult?.posters == null |
-		
-		| tmdbResult.posters.Length == 0)
+		    if (tmdbResult?.posters == null || tmdbResult.posters.Length == 0)
 		        return Array.Empty<RemoteImageInfo>();
 		
 		    // 1. 计算每个海报的“策略性”最终评分
