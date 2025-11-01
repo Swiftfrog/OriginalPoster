@@ -56,7 +56,8 @@ namespace OriginalPoster.Providers
             _logger?.Debug("[OriginalPoster] GetImages called for: {0}", item.Name);
             
             // 默认返回空列表
-            var images = Array.Empty<RemoteImageInfo>();
+            //var images = Array.Empty<RemoteImageInfo>();
+            var images = Enumerable.Empty<RemoteImageInfo>();
 
             // === 第一阶段：测试模式 ===
             if (config?.TestMode == true)
@@ -105,7 +106,8 @@ namespace OriginalPoster.Providers
             catch (Exception ex)
             {
                 //_logger?.Error(ex, "[OriginalPoster] Failed to fetch images from TMDB for {0}", item.Name);
-                _logger?.Error("[OriginalPoster] Failed to fetch images from TMDB for {0}", item.Name);
+                //_logger?.Error("[OriginalPoster] Failed to fetch images from TMDB for {0}", item.Name);
+                _logger?.Error(ex, "[OriginalPoster] Failed to fetch images from TMDB for {0}", item.Name);
             }
             
             return images; // ✅ 统一返回点
