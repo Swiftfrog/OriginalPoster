@@ -54,6 +54,9 @@ namespace OriginalPoster.Providers
         {
             var config = Plugin.Instance?.Configuration;
             _logger?.Debug("[OriginalPoster] GetImages called for: {0}", item.Name);
+            
+            // 默认返回空列表
+            var images = Array.Empty<RemoteImageInfo>();
 
             // === 第一阶段：测试模式 ===
             if (config?.TestMode == true)
@@ -82,7 +85,7 @@ namespace OriginalPoster.Providers
             if (string.IsNullOrEmpty(tmdbId))
             {
                 _logger?.Debug("[OriginalPoster] No TMDB ID found for item, skipping");
-                return Array.Empty<RemoteImageInfo>();
+                return images; // ✅ 显式返回
             }
 
             try
@@ -98,13 +101,16 @@ namespace OriginalPoster.Providers
                 var remoteImages = ConvertToRemoteImageInfo(result, targetLanguage);
                 _logger?.Debug("[OriginalPoster] Fetched {0} images from TMDB", remoteImages.Count());
 
-                return remoteImages;
+                //return remoteImages;
             }
             catch (Exception ex)
             {
                 //_logger?.Error(ex, "[OriginalPoster] Failed to fetch images from TMDB for {0}", item.Name);
-                _logger?.Error("[OriginalPoster] Failed to fetch images from TMDB for {0}. Error: {1}", item.Name, ex.Message);
+                _logger?.Error("[OriginalPoster] Failed to fetch images from TMDB for {0}", item.Name);
             }
+            
+            return images; // ✅ 统一返回点
+            
         }
 
         private string GetTmdbId(BaseItem item)
