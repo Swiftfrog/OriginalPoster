@@ -92,16 +92,15 @@ namespace OriginalPoster.Providers
             {
                 // 固定语言：第二阶段目标为 "en"
                 const string targetLanguage = "en";
-
                 _logger?.Debug("[OriginalPoster] Fetching images for TMDB ID: {0}, language: {1}", tmdbId, targetLanguage);
 
                 var tmdbClient = new TmdbClient(_httpClient, _jsonSerializer, config.TmdbApiKey);
                 var result = await tmdbClient.GetImagesAsync(tmdbId, item is Movie, targetLanguage, cancellationToken);
 
-                var remoteImages = ConvertToRemoteImageInfo(result, targetLanguage);
+                images = ConvertToRemoteImageInfo(result, targetLanguage); // ✅ 关键修复：赋值给 images
                 _logger?.Debug("[OriginalPoster] Fetched {0} images from TMDB", remoteImages.Count());
 
-                //return remoteImages;
+                // return remoteImages;
             }
             catch (Exception ex)
             {
@@ -143,7 +142,7 @@ namespace OriginalPoster.Providers
                     DisplayLanguage = GetDisplayLanguage(poster.iso_639_1 ?? fallbackLanguage),
                     Width = poster.width,
                     Height = poster.height,
-                    CommunityRating = poster.vote_average + 10,
+                    CommunityRating = poster.vote_average,
                     VoteCount = poster.vote_count,
                     RatingType = RatingType.Score
                 });
