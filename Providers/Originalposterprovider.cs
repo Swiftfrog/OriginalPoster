@@ -110,7 +110,8 @@ namespace OriginalPoster.Providers
             }
             catch (Exception ex)
             {
-                _logger?.Error(ex, "[OriginalPoster] Failed to fetch images from TMDB for {0}", item.Name);
+                //_logger?.Error(ex, "[OriginalPoster] Failed to fetch images from TMDB for {0}", item.Name);
+                _logger?.Error("[OriginalPoster] Failed to fetch images from TMDB for {0}. Error: {1}", item.Name, ex.Message);
             }
 
             return images;
