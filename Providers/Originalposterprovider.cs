@@ -94,8 +94,15 @@ namespace OriginalPoster.Providers
                 var details = await tmdbClient.GetItemDetailsAsync(tmdbId, item is Movie, cancellationToken);
                 string targetLanguage = "en"; // 默认英语
 
-                if (details?.production_countries?.Length > 0)
+                // ✅ 优先使用 original_language
+                if (!string.IsNullOrEmpty(details.original_language))
                 {
+                    targetLanguage = details.original_language;
+                    _logger?.Debug("[OriginalPoster] Using original_language: {0}", targetLanguage);
+                }
+                else if (details?.production_countries?.Length > 0)
+                {
+                    // 回退到 production_countries
                     var primaryCountry = details.production_countries[0].iso_3166_1;
                     targetLanguage = LanguageMapper.GetLanguageForCountry(primaryCountry);
                     _logger?.Debug("[OriginalPoster] Primary country: {0}, mapped language: {1}", primaryCountry, targetLanguage);
