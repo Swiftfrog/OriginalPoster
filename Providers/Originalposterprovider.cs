@@ -210,97 +210,10 @@ namespace OriginalPoster.Providers
 		        default:
 		            // 即使是“最高评分”，我们仍然需要为我们的候选海报（原语言和无文字）
 		            // 增加一个适度的奖励，以确保它们能战胜来自Emby默认TMDB供应的相同海报。
-		            if (originalLang == targetLanguage || originalLang == null) return baseRating + 10;
+		            // if (originalLang == targetLanguage || originalLang == null) return baseRating + 10;
 		            return baseRating; // 其他语言不加分
 		    }
 		}
-
-//        private IEnumerable<RemoteImageInfo> ConvertToRemoteImageInfo(
-//            TmdbImageResult tmdbResult,
-//            string targetLanguage,
-//            PosterSelectionStrategy strategy)
-//        {
-//            if (tmdbResult?.posters == null || tmdbResult.posters.Length == 0)
-//                return Array.Empty<RemoteImageInfo>();
-//        
-//            // 构建候选列表，保留原始语言信息
-//            var candidates = tmdbResult.posters
-//                .Where(p => !string.IsNullOrEmpty(p.file_path))
-//                .Select(poster => new
-//                {
-//                    Poster = poster,
-//                    OriginalLang = poster.iso_639_1,           // 原始语言（可能为 null）
-//                    DisplayLang = poster.iso_639_1 ?? targetLanguage // 显示语言
-//                })
-//                .ToList();
-//        
-//            IOrderedEnumerable<dynamic> sorted;
-//        
-//            switch (strategy)
-//            {
-//                case PosterSelectionStrategy.OriginalLanguageFirst:
-//                    sorted = candidates
-//                        .OrderByDescending(x =>
-//                        {
-//                            if (x.OriginalLang == targetLanguage) return 3; // 原生语言
-//                            if (x.OriginalLang == null) return 2;           // 无文字
-//                            return 1;                                       // 其他语言
-//                        })
-//                        .ThenByDescending(x => x.Poster.vote_average);
-//                    break;
-//        
-//                case PosterSelectionStrategy.HighestRatingFirst:
-//                    sorted = candidates.OrderByDescending(x => x.Poster.vote_average);
-//                    break;
-//        
-//                case PosterSelectionStrategy.NoTextPosterFirst:
-//                    sorted = candidates
-//                        .OrderByDescending(x =>
-//                        {
-//                            if (x.OriginalLang == null) return 3;           // 无文字最高
-//                            if (x.OriginalLang == targetLanguage) return 2; // 原生语言次之
-//                            return 1;                                       // 其他语言最后
-//                        })
-//                        .ThenByDescending(x => x.Poster.vote_average);
-//                    break;
-//        
-//                default:
-//                    sorted = candidates.OrderByDescending(x => x.Poster.vote_average);
-//                    break;
-//            }
-//            
-//            var result = sorted.Select(x => new RemoteImageInfo
-//            {
-//                ProviderName = Name,
-//                Type = ImageType.Primary,
-//                Url = $"https://image.tmdb.org/t/p/original{x.Poster.file_path}",
-//                ThumbnailUrl = $"https://image.tmdb.org/t/p/w500{x.Poster.file_path}",
-//                Language = x.DisplayLang,
-//                DisplayLanguage = GetDisplayLanguage(x.DisplayLang),
-//                Width = x.Poster.width,
-//                Height = x.Poster.height,
-//                // 给我需要的海报评分 +10，确保 Emby 优先选择你的结果，只给原语言和无文字海报加分，优先评分的不需要在分数上干预。
-//                CommunityRating = x.OriginalLang == targetLanguage
-//                    ? x.Poster.vote_average + 20
-//                    : x.OriginalLang == null
-//                        ? x.Poster.vote_average + 10
-//                        : x.Poster.vote_average,
-//                VoteCount = x.Poster.vote_count,
-//                RatingType = RatingType.Score
-//            }).ToList(); // 转为 List 以便取前几项
-//        
-//            // ✅ 新增日志：记录返回的前3张图片
-//            var top3 = result.Take(3).ToList();
-//            for (int i = 0; i < top3.Count; i++)
-//            {
-//                var img = top3[i];
-//                _logger?.Info("[OriginalPoster] Returned image #{0}: URL={1}, Language={2}, Rating={3}",
-//                    i + 1, img.Url, img.Language, img.CommunityRating);
-//            }
-//        
-//            return result; 
-//        
-//        }
 
         private string GetDisplayLanguage(string langCode)
         {
