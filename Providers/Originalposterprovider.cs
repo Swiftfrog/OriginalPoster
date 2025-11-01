@@ -143,7 +143,7 @@ namespace OriginalPoster.Providers
                     DisplayLanguage = GetDisplayLanguage(poster.iso_639_1 ?? fallbackLanguage),
                     Width = poster.width,
                     Height = poster.height,
-                    CommunityRating = poster.vote_average,
+                    CommunityRating = poster.vote_average + 10,
                     VoteCount = poster.vote_count,
                     RatingType = RatingType.Score
                 });
