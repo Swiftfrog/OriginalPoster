@@ -99,15 +99,15 @@ namespace OriginalPoster.Providers
                 var result = await tmdbClient.GetImagesAsync(tmdbId, item is Movie, targetLanguage, cancellationToken);
 
                 images = ConvertToRemoteImageInfo(result, targetLanguage); // ✅ 关键修复：赋值给 images
-                _logger?.Debug("[OriginalPoster] Fetched {0} images from TMDB", remoteImages.Count());
+                _logger?.Debug("[OriginalPoster] Fetched {0} images from TMDB", images.Count());
 
                 // return remoteImages;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 //_logger?.Error(ex, "[OriginalPoster] Failed to fetch images from TMDB for {0}", item.Name);
-                //_logger?.Error("[OriginalPoster] Failed to fetch images from TMDB for {0}", item.Name);
-                _logger?.Error(ex, "[OriginalPoster] Failed to fetch images from TMDB for {0}", item.Name);
+                _logger?.Error("[OriginalPoster] Failed to fetch images from TMDB for {0}", item.Name);
+
             }
             
             return images; // ✅ 统一返回点
