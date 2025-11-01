@@ -127,7 +127,6 @@ namespace OriginalPoster.Providers
             return null;
         }
 
-
         private IEnumerable<RemoteImageInfo> ConvertToRemoteImageInfo(
             TmdbImageResult tmdbResult,
             string targetLanguage,
@@ -192,11 +191,8 @@ namespace OriginalPoster.Providers
                 DisplayLanguage = GetDisplayLanguage(x.DisplayLang),
                 Width = x.Poster.width,
                 Height = x.Poster.height,
-                //CommunityRating = x.Poster.vote_average,
-                // ✅ 关键修改：原语言海报评分 +10
-                CommunityRating = x.OriginalLang == targetLanguage 
-                    ? x.Poster.vote_average + 10 
-                    : x.Poster.vote_average,
+                // ✅ 关键：所有海报评分 +10，确保 Emby 优先选择你的结果
+                CommunityRating = x.Poster.vote_average + 10,
                 VoteCount = x.Poster.vote_count,
                 RatingType = RatingType.Score
             }).ToList(); // 转为 List 以便取前几项
@@ -212,56 +208,7 @@ namespace OriginalPoster.Providers
         
             return result; 
         
-//            return sorted.Select(x => new RemoteImageInfo
-//            {
-//                ProviderName = Name,
-//                Type = ImageType.Primary,
-//                Url = $"https://image.tmdb.org/t/p/original{x.Poster.file_path}",
-//                ThumbnailUrl = $"https://image.tmdb.org/t/p/w500{x.Poster.file_path}",
-//                Language = x.DisplayLang,
-//                DisplayLanguage = GetDisplayLanguage(x.DisplayLang),
-//                Width = x.Poster.width,
-//                Height = x.Poster.height,
-//                CommunityRating = x.Poster.vote_average,
-//                VoteCount = x.Poster.vote_count,
-//                RatingType = RatingType.Score
-//            });
         }
-
-//        private IEnumerable<RemoteImageInfo> ConvertToRemoteImageInfo(TmdbImageResult tmdbResult, string fallbackLanguage)
-//        {
-//            if (tmdbResult?.posters == null || tmdbResult.posters.Length == 0)
-//                return Array.Empty<RemoteImageInfo>();
-//
-//            var list = new List<RemoteImageInfo>();
-//            foreach (var poster in tmdbResult.posters)
-//            {
-//                if (string.IsNullOrEmpty(poster.file_path))
-//                    continue;
-//
-//                list.Add(new RemoteImageInfo
-//                {
-//                    ProviderName = Name,
-//                    Type = ImageType.Primary,
-//                    Url = $"https://image.tmdb.org/t/p/original{poster.file_path}",
-//                    ThumbnailUrl = $"https://image.tmdb.org/t/p/w500{poster.file_path}",
-//                    Language = poster.iso_639_1 ?? fallbackLanguage,
-//                    DisplayLanguage = GetDisplayLanguage(poster.iso_639_1 ?? fallbackLanguage),
-//                    Width = poster.width,
-//                    Height = poster.height,
-//                    CommunityRating = poster.vote_average,
-//                    VoteCount = poster.vote_count,
-//                    RatingType = RatingType.Score
-//                });
-//            }
-//
-//            if (list.Count > 0)
-//            {
-//                _logger?.Info("[OriginalPoster] First image URL: {0}", list[0].Url);
-//            }
-//
-//            return list.OrderByDescending(img => img.CommunityRating ?? 0);
-//        }
 
         private string GetDisplayLanguage(string langCode)
         {
