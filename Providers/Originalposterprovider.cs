@@ -38,7 +38,7 @@ namespace OriginalPoster.Providers
         {
             _httpClient = httpClient;
             _logger = logger;
-            _logger?.Info("[OriginalPoster]: Provider initialized");
+            _logger?.Info("[OriginalPoster] Provider initialized");
         }
         
         /// <summary>
@@ -50,7 +50,7 @@ namespace OriginalPoster.Providers
             var supported = item is Movie;
             
             // _logger?.Debug("[OriginalPoster]: Supports check for {item.Name}: {supported}");
-            _logger.Debug("[OriginalPoster] Supports check for {ItemName}: {IsSupported}", item.Name, supported);
+            _logger.Debug("[OriginalPoster] Supports check for {0}: {1}", item.Name, supported);
             
             return supported;
         }
@@ -67,7 +67,7 @@ namespace OriginalPoster.Providers
             var config = Plugin.Instance?.Configuration;
             
             // _logger?.Debug("[OriginalPoster]: GetImages called for: {item.Name}");
-            _logger?.Debug("[OriginalPoster] GetImages called for: {ItemName}", item.Name);
+            _logger?.Debug("[OriginalPoster] GetImages called for: {0}", item.Name);
         
             var images = new List<RemoteImageInfo>();
             
@@ -90,7 +90,7 @@ namespace OriginalPoster.Providers
                     RatingType = RatingType.Score
                 });
                 
-                _logger?.Debug("[OriginalPoster] Returning {ImagesCount} test image(s)", images.Count);
+                _logger?.Debug("[OriginalPoster] Returning {0} test image(s)", images.Count);
             }
             else
             {
