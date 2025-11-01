@@ -127,92 +127,183 @@ namespace OriginalPoster.Providers
             return null;
         }
 
-        private IEnumerable<RemoteImageInfo> ConvertToRemoteImageInfo(
-            TmdbImageResult tmdbResult,
-            string targetLanguage,
-            PosterSelectionStrategy strategy)
-        {
-            if (tmdbResult?.posters == null || tmdbResult.posters.Length == 0)
-                return Array.Empty<RemoteImageInfo>();
-        
-            // 构建候选列表，保留原始语言信息
-            var candidates = tmdbResult.posters
-                .Where(p => !string.IsNullOrEmpty(p.file_path))
-                .Select(poster => new
-                {
-                    Poster = poster,
-                    OriginalLang = poster.iso_639_1,           // 原始语言（可能为 null）
-                    DisplayLang = poster.iso_639_1 ?? targetLanguage // 显示语言
-                })
-                .ToList();
-        
-            IOrderedEnumerable<dynamic> sorted;
-        
-            switch (strategy)
-            {
-                case PosterSelectionStrategy.OriginalLanguageFirst:
-                    sorted = candidates
-                        .OrderByDescending(x =>
-                        {
-                            if (x.OriginalLang == targetLanguage) return 3; // 原生语言
-                            if (x.OriginalLang == null) return 2;           // 无文字
-                            return 1;                                       // 其他语言
-                        })
-                        .ThenByDescending(x => x.Poster.vote_average);
-                    break;
-        
-                case PosterSelectionStrategy.HighestRatingFirst:
-                    sorted = candidates.OrderByDescending(x => x.Poster.vote_average);
-                    break;
-        
-                case PosterSelectionStrategy.NoTextPosterFirst:
-                    sorted = candidates
-                        .OrderByDescending(x =>
-                        {
-                            if (x.OriginalLang == null) return 3;           // 无文字最高
-                            if (x.OriginalLang == targetLanguage) return 2; // 原生语言次之
-                            return 1;                                       // 其他语言最后
-                        })
-                        .ThenByDescending(x => x.Poster.vote_average);
-                    break;
-        
-                default:
-                    sorted = candidates.OrderByDescending(x => x.Poster.vote_average);
-                    break;
-            }
-            
-            var result = sorted.Select(x => new RemoteImageInfo
-            {
-                ProviderName = Name,
-                Type = ImageType.Primary,
-                Url = $"https://image.tmdb.org/t/p/original{x.Poster.file_path}",
-                ThumbnailUrl = $"https://image.tmdb.org/t/p/w500{x.Poster.file_path}",
-                Language = x.DisplayLang,
-                DisplayLanguage = GetDisplayLanguage(x.DisplayLang),
-                Width = x.Poster.width,
-                Height = x.Poster.height,
-                // 给我需要的海报评分 +10，确保 Emby 优先选择你的结果，只给原语言和无文字海报加分，优先评分的不需要在分数上干预。
-                CommunityRating = x.OriginalLang == targetLanguage
-                    ? x.Poster.vote_average + 20
-                    : x.OriginalLang == null
-                        ? x.Poster.vote_average + 10
-                        : x.Poster.vote_average,
-                VoteCount = x.Poster.vote_count,
-                RatingType = RatingType.Score
-            }).ToList(); // 转为 List 以便取前几项
-        
-            // ✅ 新增日志：记录返回的前3张图片
-            var top3 = result.Take(3).ToList();
-            for (int i = 0; i < top3.Count; i++)
-            {
-                var img = top3[i];
-                _logger?.Info("[OriginalPoster] Returned image #{0}: URL={1}, Language={2}, Rating={3}",
-                    i + 1, img.Url, img.Language, img.CommunityRating);
-            }
-        
-            return result; 
-        
-        }
+
+		// 替换 OriginalPosterProvider.cs 中现有的 ConvertToRemoteImageInfo 方法
+		private IEnumerable<RemoteImageInfo> ConvertToRemoteImageInfo(
+		    TmdbImageResult tmdbResult,
+		    string targetLanguage,
+		    PosterSelectionStrategy strategy)
+		{
+		    if (tmdbResult?.posters == null |
+		
+		| tmdbResult.posters.Length == 0)
+		        return Array.Empty<RemoteImageInfo>();
+		
+		    // 1. 计算每个海报的“策略性”最终评分
+		    var candidates = tmdbResult.posters
+		       .Where(p =>!string.IsNullOrEmpty(p.file_path))
+		       .Select(poster => new
+		        {
+		            Poster = poster,
+		            OriginalLang = poster.iso_639_1,
+		            DisplayLang = poster.iso_639_1?? targetLanguage,
+		            // 核心修复：在这里预先计算最终评分
+		            CalculatedRating = GetStrategyBasedRating(poster, poster.iso_639_1, targetLanguage, strategy)
+		        });
+		
+		    // 2. 仅按“最终评分”排序
+		    // (您原来的 switch 排序块不再需要)
+		    var sorted = candidates
+		       .OrderByDescending(x => x.CalculatedRating)
+		       .ThenByDescending(x => x.Poster.vote_count); // 使用 vote_count 作为决胜局
+		
+		    // 3. 将排序后的列表转换为 RemoteImageInfo
+		    var result = sorted.Select(x => new RemoteImageInfo
+		    {
+		        ProviderName = Name,
+		        Type = ImageType.Primary,
+		        Url = $"https://image.tmdb.org/t/p/original{x.Poster.file_path}",
+		        ThumbnailUrl = $"https://image.tmdb.org/t/p/w500{x.Poster.file_path}",
+		        Language = x.DisplayLang,
+		        DisplayLanguage = GetDisplayLanguage(x.DisplayLang),
+		        Width = x.Poster.width,
+		        Height = x.Poster.height,
+		        
+		        // 分配我们预先计算好的、反映了策略的评分
+		        CommunityRating = x.CalculatedRating,
+		                                    
+		        VoteCount = x.Poster.vote_count,
+		        RatingType = RatingType.Score
+		    }).ToList();
+		
+		    // 您的日志记录（保持不变）
+		    var top3 = result.Take(3).ToList();
+		    for (int i = 0; i < top3.Count; i++)
+		    {
+		        var img = top3[i];
+		        _logger?.Info("[OriginalPoster] Returned image #{0}: URL={1}, Language={2}, Rating={3}",
+		            i + 1, img.Url, img.Language, img.CommunityRating);
+		    }
+		
+		    return result;
+		}
+
+		// 将这个新方法添加到您的 OriginalPosterProvider.cs 类中
+		// (假设 TmdbPoster 定义在 OriginalPoster.Models 命名空间下)
+		/// <summary>
+		/// 根据用户策略计算海报的最终评分（基础分 + 奖励分）
+		/// </summary>
+		private double GetStrategyBasedRating(OriginalPoster.Models.TmdbImage poster, string originalLang, string targetLanguage, PosterSelectionStrategy strategy)
+		{
+		    double baseRating = poster.vote_average;
+		
+		    switch (strategy)
+		    {
+		        case PosterSelectionStrategy.OriginalLanguageFirst:
+		            if (originalLang == targetLanguage) return baseRating + 20; // 原语言 +20
+		            if (originalLang == null) return baseRating + 10;           // 无文字 +10
+		            return baseRating; // 其他语言
+		
+		        case PosterSelectionStrategy.NoTextPosterFirst:
+		            if (originalLang == null) return baseRating + 20;           // 无文字 +20
+		            if (originalLang == targetLanguage) return baseRating + 10; // 原语言 +10
+		            return baseRating; // 其他语言
+		
+		        case PosterSelectionStrategy.HighestRatingFirst:
+		        default:
+		            // 即使是“最高评分”，我们仍然需要为我们的候选海报（原语言和无文字）
+		            // 增加一个适度的奖励，以确保它们能战胜来自Emby默认TMDB供应的相同海报。
+		            if (originalLang == targetLanguage || originalLang == null) return baseRating + 10;
+		            return baseRating; // 其他语言不加分
+		    }
+		}
+
+//        private IEnumerable<RemoteImageInfo> ConvertToRemoteImageInfo(
+//            TmdbImageResult tmdbResult,
+//            string targetLanguage,
+//            PosterSelectionStrategy strategy)
+//        {
+//            if (tmdbResult?.posters == null || tmdbResult.posters.Length == 0)
+//                return Array.Empty<RemoteImageInfo>();
+//        
+//            // 构建候选列表，保留原始语言信息
+//            var candidates = tmdbResult.posters
+//                .Where(p => !string.IsNullOrEmpty(p.file_path))
+//                .Select(poster => new
+//                {
+//                    Poster = poster,
+//                    OriginalLang = poster.iso_639_1,           // 原始语言（可能为 null）
+//                    DisplayLang = poster.iso_639_1 ?? targetLanguage // 显示语言
+//                })
+//                .ToList();
+//        
+//            IOrderedEnumerable<dynamic> sorted;
+//        
+//            switch (strategy)
+//            {
+//                case PosterSelectionStrategy.OriginalLanguageFirst:
+//                    sorted = candidates
+//                        .OrderByDescending(x =>
+//                        {
+//                            if (x.OriginalLang == targetLanguage) return 3; // 原生语言
+//                            if (x.OriginalLang == null) return 2;           // 无文字
+//                            return 1;                                       // 其他语言
+//                        })
+//                        .ThenByDescending(x => x.Poster.vote_average);
+//                    break;
+//        
+//                case PosterSelectionStrategy.HighestRatingFirst:
+//                    sorted = candidates.OrderByDescending(x => x.Poster.vote_average);
+//                    break;
+//        
+//                case PosterSelectionStrategy.NoTextPosterFirst:
+//                    sorted = candidates
+//                        .OrderByDescending(x =>
+//                        {
+//                            if (x.OriginalLang == null) return 3;           // 无文字最高
+//                            if (x.OriginalLang == targetLanguage) return 2; // 原生语言次之
+//                            return 1;                                       // 其他语言最后
+//                        })
+//                        .ThenByDescending(x => x.Poster.vote_average);
+//                    break;
+//        
+//                default:
+//                    sorted = candidates.OrderByDescending(x => x.Poster.vote_average);
+//                    break;
+//            }
+//            
+//            var result = sorted.Select(x => new RemoteImageInfo
+//            {
+//                ProviderName = Name,
+//                Type = ImageType.Primary,
+//                Url = $"https://image.tmdb.org/t/p/original{x.Poster.file_path}",
+//                ThumbnailUrl = $"https://image.tmdb.org/t/p/w500{x.Poster.file_path}",
+//                Language = x.DisplayLang,
+//                DisplayLanguage = GetDisplayLanguage(x.DisplayLang),
+//                Width = x.Poster.width,
+//                Height = x.Poster.height,
+//                // 给我需要的海报评分 +10，确保 Emby 优先选择你的结果，只给原语言和无文字海报加分，优先评分的不需要在分数上干预。
+//                CommunityRating = x.OriginalLang == targetLanguage
+//                    ? x.Poster.vote_average + 20
+//                    : x.OriginalLang == null
+//                        ? x.Poster.vote_average + 10
+//                        : x.Poster.vote_average,
+//                VoteCount = x.Poster.vote_count,
+//                RatingType = RatingType.Score
+//            }).ToList(); // 转为 List 以便取前几项
+//        
+//            // ✅ 新增日志：记录返回的前3张图片
+//            var top3 = result.Take(3).ToList();
+//            for (int i = 0; i < top3.Count; i++)
+//            {
+//                var img = top3[i];
+//                _logger?.Info("[OriginalPoster] Returned image #{0}: URL={1}, Language={2}, Rating={3}",
+//                    i + 1, img.Url, img.Language, img.CommunityRating);
+//            }
+//        
+//            return result; 
+//        
+//        }
 
         private string GetDisplayLanguage(string langCode)
         {
