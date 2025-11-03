@@ -13,6 +13,7 @@ using OriginalPoster.Models;
 using OriginalPoster.Services;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -275,39 +276,62 @@ namespace OriginalPoster.Providers
                     return baseRating;
             }
         }
-
+        
         private string GetDisplayLanguage(string langCode)
         {
-            return langCode switch
+            // 1. 检查输入 (你的检查很好)
+            if (string.IsNullOrWhiteSpace(langCode))
             {
-                "en" => "English",
-                "zh" => "Chinese",
-                "ja" => "Japanese",
-                "ko" => "Korean",
-                "fr" => "French",
-                "de" => "German",
-                "es" => "Spanish",
-                "it" => "Italian",
-                "ru" => "Russian",
-                "ar" => "Arabic",
-                "hi" => "Hindi",
-                "th" => "Thai",
-                "pt" => "Portuguese",
-                "nl" => "Dutch",
-                "sv" => "Swedish",
-                "no" => "Norwegian",
-                "da" => "Danish",
-                "fi" => "Finnish",
-                "pl" => "Polish",
-                "cs" => "Czech",
-                "hu" => "Hungarian",
-                "el" => "Greek",
-                "tr" => "Turkish",
-                "he" => "Hebrew",
-                "fa" => "Persian",
-                _ => langCode.ToUpperInvariant()
-            };
+                return "Unknown";
+            }
+        
+            try
+            {
+                // 2. 尝试直接构造 (这已经处理了 "en", "ja", "zh" 等所有情况)
+                CultureInfo ci = new CultureInfo(langCode);
+                return ci.EnglishName;
+            }
+            catch (CultureNotFoundException)
+            {
+                 // （可选）在你的Emby插件日志中记录这个未知的代码
+                // Logger.LogWarning($"[MyPlugin] Found unknown language code from TMDB: {langCode}");
+                
+                return langCode.ToUpperInvariant();
+            }
         }
+
+//        private string GetDisplayLanguage(string langCode)
+//        {
+//            return langCode switch
+//            {
+//                "en" => "English",
+//                "zh" => "Chinese",
+//                "ja" => "Japanese",
+//                "ko" => "Korean",
+//                "fr" => "French",
+//                "de" => "German",
+//                "es" => "Spanish",
+//                "it" => "Italian",
+//                "ru" => "Russian",
+//                "ar" => "Arabic",
+//                "hi" => "Hindi",
+//                "th" => "Thai",
+//                "pt" => "Portuguese",
+//                "nl" => "Dutch",
+//                "sv" => "Swedish",
+//                "no" => "Norwegian",
+//                "da" => "Danish",
+//                "fi" => "Finnish",
+//                "pl" => "Polish",
+//                "cs" => "Czech",
+//                "hu" => "Hungarian",
+//                "el" => "Greek",
+//                "tr" => "Turkish",
+//                "he" => "Hebrew",
+//                "fa" => "Persian",
+//                _ => langCode.ToUpperInvariant()
+//            };
+//        }
 
         public IEnumerable<ImageType> GetSupportedImages(BaseItem item)
         {
