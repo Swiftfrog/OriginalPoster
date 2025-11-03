@@ -26,7 +26,7 @@ namespace OriginalPoster
         // 插件实例（供其他类访问配置）
         public static Plugin Instance { get; private set; }
         
-         public OriginalPosterConfig Configuration => GetOptions();
+        public OriginalPosterConfig Configuration => GetOptions();
         
         public Plugin(IApplicationHost applicationPaths)
             : base(applicationPaths)
@@ -35,6 +35,7 @@ namespace OriginalPoster
         }
 
 // --- 已修正日志的调试版本 ---
+        public readonly ILogger Logger;
         public Stream GetThumbImage()
         {
             var assembly = GetType().Assembly;
