@@ -153,7 +153,7 @@ namespace OriginalPoster.Providers
                         result.logos, targetLanguage, config.MetadataLanguage, 
                         config.PosterSelectionStrategy, ImageType.Logo));
                 }
-
+                _logger?.Debug("[OriginalPoster] Fetched {0} images from TMDB", allImages.Count());
                 return allImages;
 
 //                if (imageType == ImageType.Primary)
@@ -168,7 +168,7 @@ namespace OriginalPoster.Providers
 //                return Enumerable.Empty<RemoteImageInfo>();
 
 //                images = ConvertToRemoteImageInfo(result, targetLanguage, config.PosterSelectionStrategy);
-                _logger?.Debug("[OriginalPoster] Fetched {0} images from TMDB", allImages.Count());
+//                _logger?.Debug("[OriginalPoster] Fetched {0} images from TMDB", allImages.Count());
             }
             catch (Exception ex)
             {
@@ -192,7 +192,7 @@ namespace OriginalPoster.Providers
 		private IEnumerable<RemoteImageInfo> ConvertToRemoteImageInfo(
 		    TmdbImage[] images,
 		    string targetLanguage,
-		    string metadataLanguage,
+		    string MetadataLanguage,
 		    PosterSelectionStrategy strategy,
 		    ImageType imageType)
 		{
@@ -228,9 +228,9 @@ namespace OriginalPoster.Providers
 		        Type = imageType, // ✅ 动态设置类型（Primary 或 Logo）
 		        Url = $"https://image.tmdb.org/t/p/original{x.Poster.file_path}",
 		        ThumbnailUrl = $"https://image.tmdb.org/t/p/w500{x.Poster.file_path}",
-                Language = string.IsNullOrEmpty(metadataLanguage) 
+                Language = string.IsNullOrEmpty(MetadataLanguage) 
                     ? x.DisplayLang 
-                    : metadataLanguage, // 强制使用元数据语言
+                    : MetadataLanguage, // 强制使用元数据语言
 		        DisplayLanguage = GetDisplayLanguage(x.DisplayLang),
     	        Width = x.Poster.width,
 		        Height = x.Poster.height,
