@@ -31,6 +31,10 @@ namespace OriginalPoster
         [Description("设置为与 Emby 媒体库的“首选元数据语言”一致，例如 Chinese、English。留空则使用原语言显示。")]
         public string DisplayLanguageOverride { get; set; } = "Chinese";
         
+        [DisplayName("元数据语言（用于兼容 Emby 语言偏好）")]
+        [Description("设置为 Emby 媒体库的“首选元数据语言”，例如 zh、en。")]
+        public string MetadataLanguage { get; set; } = "zh"; // 直接写死为 "zh"
+        
         [DisplayName("海报选择策略")]
         [Description("选择原语言海报时的优先级策略")]
         public PosterSelectionStrategy PosterSelectionStrategy { get; set; } = PosterSelectionStrategy.OriginalLanguageFirst;
