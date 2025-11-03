@@ -169,8 +169,8 @@ namespace OriginalPoster.Providers
                 // === 自动语言识别 ===
 
                 // 2. 获取该语言的海报
-                _logger?.Debug("[OriginalPoster] Fetching images for TMDB ID: {0}, language: {1}", tmdbId, targetLanguage);
-                var result = await tmdbClient.GetImagesAsync(tmdbId, item is Movie, targetLanguage, cancellationToken);
+                _logger?.Debug("[OriginalPoster] Fetching images for TMDB ID: {0}, language: {1}", imagesTmdbId, targetLanguage);
+                var result = await tmdbClient.GetImagesAsync(imagesTmdbId, item is Movie, targetLanguage, cancellationToken);
 
                 var allImages = new List<RemoteImageInfo>();
 
