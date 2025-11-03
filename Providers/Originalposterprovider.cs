@@ -48,7 +48,6 @@ namespace OriginalPoster.Providers
 
         public async Task<IEnumerable<RemoteImageInfo>> GetImages(
             BaseItem item,
-            ImageType imageType, 
             LibraryOptions libraryOptions,
             CancellationToken cancellationToken)
         {
@@ -137,19 +136,39 @@ namespace OriginalPoster.Providers
                 _logger?.Debug("[OriginalPoster] Fetching images for TMDB ID: {0}, language: {1}", tmdbId, targetLanguage);
                 var result = await tmdbClient.GetImagesAsync(tmdbId, item is Movie, targetLanguage, cancellationToken);
 
-                if (imageType == ImageType.Primary)
+                var allImages = new List<RemoteImageInfo>();
+
+                // 添加海报
+                if (result.posters != null)
                 {
-                    return ConvertToRemoteImageInfo(result.posters, targetLanguage, config.MetadataLanguage, config.PosterSelectionStrategy, ImageType.Primary);
+                    allImages.AddRange(ConvertToRemoteImageInfo(
+                        result.posters, targetLanguage, config.MetadataLanguage, 
+                        config.PosterSelectionStrategy, ImageType.Primary));
                 }
-                else if (imageType == ImageType.Logo)
+
+                // 添加 Logo
+                if (result.logos != null)
                 {
-                    return ConvertToRemoteImageInfo(result.logos, targetLanguage, config.MetadataLanguage, config.PosterSelectionStrategy, ImageType.Logo);
+                    allImages.AddRange(ConvertToRemoteImageInfo(
+                        result.logos, targetLanguage, config.MetadataLanguage, 
+                        config.PosterSelectionStrategy, ImageType.Logo));
                 }
-            
-                return Enumerable.Empty<RemoteImageInfo>();
+
+                return allImages;
+
+//                if (imageType == ImageType.Primary)
+//                {
+//                    return ConvertToRemoteImageInfo(result.posters, targetLanguage, config.MetadataLanguage, config.PosterSelectionStrategy, ImageType.Primary);
+//                }
+//                else if (imageType == ImageType.Logo)
+//                {
+//                    return ConvertToRemoteImageInfo(result.logos, targetLanguage, config.MetadataLanguage, config.PosterSelectionStrategy, ImageType.Logo);
+//                }
+//            
+//                return Enumerable.Empty<RemoteImageInfo>();
 
 //                images = ConvertToRemoteImageInfo(result, targetLanguage, config.PosterSelectionStrategy);
-                _logger?.Debug("[OriginalPoster] Fetched {0} images from TMDB", images.Count());
+                _logger?.Debug("[OriginalPoster] Fetched {0} images from TMDB", allImages.Count());
             }
             catch (Exception ex)
             {
@@ -212,16 +231,8 @@ namespace OriginalPoster.Providers
                 Language = string.IsNullOrEmpty(MetadataLanguage) 
                     ? x.DisplayLang 
                     : MetadataLanguage, // 强制使用元数据语言
-//                DisplayLanguage = GetDisplayLanguage(
-//                    string.IsNullOrEmpty(config?.MetadataLanguage) 
-//                        ? x.DisplayLang 
-//                        : config.MetadataLanguage),
-//                Language = x.DisplayLang,
 		        DisplayLanguage = GetDisplayLanguage(x.DisplayLang),
-//                DisplayLanguage = string.IsNullOrEmpty(config?.DisplayLanguageOverride)
-//                    ? GetDisplayLanguage(x.DisplayLang)   // 默认
-//                    : config.DisplayLanguageOverride,     // 强制覆盖（如 "Chinese"）		        
-		        Width = x.Poster.width,
+    	        Width = x.Poster.width,
 		        Height = x.Poster.height,
 		        CommunityRating = x.CalculatedRating,    // 分配我们预先计算好的、反映了策略的评分
 		        VoteCount = x.Poster.vote_count,
