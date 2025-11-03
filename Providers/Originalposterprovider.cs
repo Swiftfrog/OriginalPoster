@@ -170,11 +170,12 @@ namespace OriginalPoster.Providers
 		private IEnumerable<RemoteImageInfo> ConvertToRemoteImageInfo(
 		    TmdbImageResult tmdbResult,
 		    string targetLanguage,
-		    string metadataLanguage,
 		    PosterSelectionStrategy strategy)
 		{
 		    if (tmdbResult?.posters == null || tmdbResult.posters.Length == 0)
 		        return Array.Empty<RemoteImageInfo>();
+		
+    		var config = Plugin.Instance?.Configuration;
 		
 		    // 1. 计算每个海报的“策略性”最终评分
 		    var candidates = tmdbResult.posters
