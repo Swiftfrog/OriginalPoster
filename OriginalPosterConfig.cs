@@ -27,10 +27,6 @@ namespace OriginalPoster
         [Description("在 https://www.themoviedb.org/settings/api 获取")]
         public string TmdbApiKey { get; set; } = string.Empty;
         
-        [DisplayName("显示语言（Display Language）")]
-        [Description("设置为与 Emby 媒体库的“首选元数据语言”一致，例如 Chinese、English。留空则使用原语言显示。")]
-        public string DisplayLanguageOverride { get; set; } = "Chinese";
-        
         [DisplayName("元数据语言（用于兼容 Emby 语言偏好）")]
         [Description("设置为 Emby 媒体库的“首选元数据语言”，例如 zh、en。")]
         public string MetadataLanguage { get; set; } = "zh"; // 直接写死为 "zh"
@@ -44,14 +40,7 @@ namespace OriginalPoster
         /// </summary>
         [DisplayName("测试模式")]
         [Description("启用后将返回测试海报，用于验证插件功能")]
-        public bool TestMode { get; set; } = true;
-        
-        /// <summary>
-        /// 调试日志
-        /// </summary>
-        [DisplayName("调试日志")]
-        [Description("启用后将在控制台输出详细的调试信息")]
-        public bool DebugLogging { get; set; } = true;
+        public bool TestMode { get; set; } = false;
         
         /// <summary>
         /// 测试用的海报URL（第一阶段使用）

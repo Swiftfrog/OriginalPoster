@@ -92,21 +92,9 @@ namespace OriginalPoster.Providers
 
                 // 1. 获取项目详情以确定原产国
                 var details = await tmdbClient.GetItemDetailsAsync(tmdbId, item is Movie, cancellationToken);
-//                string targetLanguage = "en"; // 默认英语
-//
-//                // 1. 优先 original_language
-//                if (!string.IsNullOrEmpty(details?.original_language))
-//                {
-//                    targetLanguage = details.original_language;
-//                }
-//                // 2. 其次 origin_country[0]
-//                else if (details?.origin_country?.Length > 0)
-//                {
-//                    var originCountry = details.origin_country[0];
-//                    targetLanguage = LanguageMapper.GetLanguageForCountry(originCountry);
-//                }
 
                 string targetLanguage = "en";
+
                 // 1. 优先 origin_country
                 if (details?.origin_country?.Length > 0)
                 {
@@ -138,7 +126,6 @@ namespace OriginalPoster.Providers
                     targetLanguage = LanguageMapper.GetLanguageForCountry(fallbackCountry);
                 }
                 // 4. 最终兜底 "en"
-
 
                 // 2. 获取该语言的海报
                 _logger?.Debug("[OriginalPoster] Fetching images for TMDB ID: {0}, language: {1}", tmdbId, targetLanguage);
@@ -185,8 +172,6 @@ namespace OriginalPoster.Providers
 		            Poster = poster,
 		            OriginalLang = poster.iso_639_1,
 		            DisplayLang = poster.iso_639_1?? targetLanguage,
-		            // 核心修复：在这里预先计算最终评分
-		            // CalculatedRating = GetStrategyBasedRating(poster, poster.iso_639_1, targetLanguage, strategy)
 		            CalculatedRating = GetStrategyBasedRating(poster, targetLanguage, strategy)
 		        });
 		
@@ -203,7 +188,6 @@ namespace OriginalPoster.Providers
 		        Type = ImageType.Primary,
 		        Url = $"https://image.tmdb.org/t/p/original{x.Poster.file_path}",
 		        ThumbnailUrl = $"https://image.tmdb.org/t/p/w500{x.Poster.file_path}",
-                
                 Language = string.IsNullOrEmpty(config?.MetadataLanguage) 
                     ? x.DisplayLang 
                     : config.MetadataLanguage, // 强制使用元数据语言
@@ -215,13 +199,10 @@ namespace OriginalPoster.Providers
 		        DisplayLanguage = GetDisplayLanguage(x.DisplayLang),
 //                DisplayLanguage = string.IsNullOrEmpty(config?.DisplayLanguageOverride)
 //                    ? GetDisplayLanguage(x.DisplayLang)   // 默认
-//                    : config.DisplayLanguageOverride,     // ✅ 强制覆盖（如 "Chinese"）		        
+//                    : config.DisplayLanguageOverride,     // 强制覆盖（如 "Chinese"）		        
 		        Width = x.Poster.width,
 		        Height = x.Poster.height,
-		        
-		        // 分配我们预先计算好的、反映了策略的评分
-		        CommunityRating = x.CalculatedRating,
-		                                    
+		        CommunityRating = x.CalculatedRating,    // 分配我们预先计算好的、反映了策略的评分
 		        VoteCount = x.Poster.vote_count,
 		        RatingType = RatingType.Score
 		    }).ToList();
@@ -231,11 +212,11 @@ namespace OriginalPoster.Providers
 		    for (int i = 0; i < top3.Count; i++)
 		    {
 		        var img = top3[i];
-		        _logger?.Info("[OriginalPoster] Returned image #{0}: URL={1}, Language={2}, Rating={3}",
+		        _logger?.Debug("[OriginalPoster] Returned image #{0}: URL={1}, Language={2}, Rating={3}",
 		            i + 1, img.Url, img.Language, img.CommunityRating);
 		    }
 		    
-//            // ✅ 关键：如果配置了 MetadataLanguage 且不等于 targetLanguage，额外返回一张“伪装成元数据语言”的海报
+//            // 关键：如果配置了 MetadataLanguage 且不等于 targetLanguage，额外返回一张“伪装成元数据语言”的海报
 //            if (!string.IsNullOrEmpty(metadataLanguage) && 
 //                !string.Equals(metadataLanguage, targetLanguage, StringComparison.OrdinalIgnoreCase))
 //            {
@@ -249,7 +230,7 @@ namespace OriginalPoster.Providers
 //                        Type = ImageType.Primary,
 //                        Url = topImage.Url,
 //                        ThumbnailUrl = topImage.ThumbnailUrl,
-//                        Language = metadataLanguage, // 👈 伪装成用户设置的语言
+//                        Language = metadataLanguage, // 伪装成用户设置的语言
 //                        DisplayLanguage = GetDisplayLanguage(metadataLanguage),
 //                        Width = topImage.Width,
 //                        Height = topImage.Height,
@@ -264,48 +245,18 @@ namespace OriginalPoster.Providers
 		    return result;
 		}
 
-		// 将这个新方法添加到您的 OriginalPosterProvider.cs 类中
-		// (假设 TmdbPoster 定义在 OriginalPoster.Models 命名空间下)
-		/// <summary>
-		/// 根据用户策略计算海报的最终评分（基础分 + 奖励分）
-		/// </summary>
-        //		private double GetStrategyBasedRating(TmdbImage poster, string originalLang, string targetLanguage, PosterSelectionStrategy strategy)
-        //		{
-        //		    double baseRating = poster.vote_average;
-        //		
-        //		    switch (strategy)
-        //		    {
-        //		        case PosterSelectionStrategy.OriginalLanguageFirst:
-        //		            if (originalLang == targetLanguage) return baseRating + 20; // 原语言 +20
-        //		            if (originalLang == null) return baseRating + 10;           // 无文字 +10
-        //		            return baseRating; // 其他语言
-        //		
-        //		        case PosterSelectionStrategy.NoTextPosterFirst:
-        //		            if (originalLang == null) return baseRating + 20;           // 无文字 +20
-        //		            if (originalLang == targetLanguage) return baseRating + 10; // 原语言 +10
-        //		            return baseRating; // 其他语言
-        //		
-        //		        case PosterSelectionStrategy.HighestRatingFirst:
-        //		        default:
-        //		            // 即使是“最高评分”，我们仍然需要为我们的候选海报（原语言和无文字）
-        //		            // 增加一个适度的奖励，以确保它们能战胜来自Emby默认TMDB供应的相同海报。
-        //		            // if (originalLang == targetLanguage || originalLang == null) return baseRating + 10;
-        //		            return baseRating; // 其他语言不加分
-        //		    }
-        //		}
-
         /// <summary>
         /// 根据用户策略计算海报的最终评分（基础分 + 奖励分）
         /// </summary>
         private double GetStrategyBasedRating(
-            TmdbImage poster,                  // ✅ 只需传入完整对象
+            TmdbImage poster,                  // 只需传入完整对象
             string targetLanguage,             // 目标语言（用于判断是否“原语言”）
             PosterSelectionStrategy strategy)  // 策略
         {
             if (poster == null) return 0;
         
             double baseRating = poster.vote_average;
-            string originalLang = poster.iso_639_1; // ✅ 内部直接读取
+            string originalLang = poster.iso_639_1; // 内部直接读取
         
             switch (strategy)
             {
