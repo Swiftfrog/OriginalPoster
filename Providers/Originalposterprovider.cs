@@ -41,7 +41,8 @@ namespace OriginalPoster.Providers
         public bool Supports(BaseItem item)
         {
 //            var supported = item is Movie;
-            var supported = item is Movie || item is Series; // ✅ 支持电影和剧集
+//            var supported = item is Movie || item is Series; // ✅ 支持电影和剧集
+            var supported = item is Movie || item is Series || item is Season;
             _logger.Debug("[OriginalPoster] Supports check for {0}: {1}", item.Name, supported);
             return supported;
         }
@@ -104,8 +105,33 @@ namespace OriginalPoster.Providers
             {
                 var tmdbClient = new TmdbClient(_httpClient, _jsonSerializer, config.TmdbApiKey);
 
+                // --- 关键修订：区分详情ID和图像ID ---
+                // imagesTmdbId 可能是 "12345" (Movie), "1396" (Series), 或 "1396_S1" (Season)
+                var imagesTmdbId = GetTmdbId(item);
+                if (string.IsNullOrEmpty(imagesTmdbId))
+                {
+                    _logger?.Debug("[OriginalPoster] No TMDB ID found for item, skipping");
+                    return images;
+                }
+
+                string detailsTmdbId;
+                bool isMovie = item is Movie; // Movie=true, Series=false, Season=false
+
+                if (item is Season)
+                {
+                    // 播出季：详情ID是 Series ID (例如 "1396")
+                    detailsTmdbId = imagesTmdbId.Split('_')[0];
+                }
+                else
+                {
+                    // 电影或剧集：详情ID和图像ID是相同的
+                    detailsTmdbId = imagesTmdbId;
+                }
+                // --- 修订结束 ---
+
+
                 // 1. 获取项目详情以确定原产国
-                var details = await tmdbClient.GetItemDetailsAsync(tmdbId, item is Movie, cancellationToken);
+                var details = await tmdbClient.GetItemDetailsAsync(detailsTmdbId, item is Movie, cancellationToken);
 
                 string targetLanguage = "en";
 
@@ -191,11 +217,34 @@ namespace OriginalPoster.Providers
             return images;
         }
 
+//        private string GetTmdbId(BaseItem item)
+//        {
+//            if (item.ProviderIds?.TryGetValue(MetadataProviders.Tmdb.ToString(), out var id) == true)
+//            {
+//                return id;
+//            }
+//            return null;
+//        }
+
         private string GetTmdbId(BaseItem item)
         {
-            if (item.ProviderIds?.TryGetValue(MetadataProviders.Tmdb.ToString(), out var id) == true)
+            // 电影或剧集：直接从 ProviderIds 获取
+            if (item is Movie || item is Series)
             {
-                return id;
+                if (item.ProviderIds?.TryGetValue(MetadataProviders.Tmdb.ToString(), out var id) == true)
+                {
+                    return id;
+                }
+            }
+            // 播出季：从 Parent Series 获取 TMDB ID + 季号
+            else if (item is Season season)
+            {
+                var series = season.Series;
+                if (series?.ProviderIds?.TryGetValue(MetadataProviders.Tmdb.ToString(), out var seriesTmdbId) == true)
+                {
+                    // 返回组合 ID，如 "1396_S1"
+                    return $"{seriesTmdbId}_S{season.IndexNumber}";
+                }
             }
             return null;
         }

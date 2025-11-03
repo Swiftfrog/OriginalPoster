@@ -66,10 +66,47 @@ namespace OriginalPoster.Services
             if (string.IsNullOrWhiteSpace(tmdbId))
                 throw new ArgumentException("TMDB ID cannot be null or empty.", nameof(tmdbId));
 
-            var type = isMovie ? "movie" : "tv";
-            var url = $"{BaseUrl}/{type}/{tmdbId}/images?" +
+            string url;
+
+            // --- 关键修订：检查是否为播出季复合ID ---
+            // 我们在 Provider 中定义的格式是 "SeriesId_S<SeasonNumber>" (例如 "1396_S1")
+            // isMovie 此时为 false
+            if (!isMovie && tmdbId.Contains("_S"))
+            {
+                var parts = tmdbId.Split(new[] { "_S" }, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length == 2 && !string.IsNullOrEmpty(parts[0]) && !string.IsNullOrEmpty(parts[1]))
+//                if (parts.Length == 2 && 
+//                    !string.IsNullOrEmpty(parts[0]) && 
+//                    !string.IsNullOrEmpty(parts[1]) &&
+//                    int.TryParse(parts[1], out _)) // ✅ 确保 seasonNumber 是有效数字
+                {
+                    var seriesId = parts[0];
+                    var seasonNumber = parts[1];
+                    
+                    // 构建正确的播出季图像 URL
+                    url = $"{BaseUrl}/tv/{seriesId}/season/{seasonNumber}/images?" +
+                          $"api_key={_apiKey}&" +
+                          $"include_image_language={language},null";
+                }
+                else
+                {
+                    throw new ArgumentException($"Invalid composite season TMDB ID format: {tmdbId}", nameof(tmdbId));
+                }
+            }
+            else
+            {
+                // 传统逻辑：电影 或 剧集
+                var type = isMovie ? "movie" : "tv";
+                url = $"{BaseUrl}/{type}/{tmdbId}/images?" +
                       $"api_key={_apiKey}&" +
                       $"include_image_language={language},null";
+            }
+            // --- 修订结束 ---
+
+//            var type = isMovie ? "movie" : "tv";
+//            var url = $"{BaseUrl}/{type}/{tmdbId}/images?" +
+//                      $"api_key={_apiKey}&" +
+//                      $"include_image_language={language},null";
 
             var options = new HttpRequestOptions
             {
