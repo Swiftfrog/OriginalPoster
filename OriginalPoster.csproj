@@ -13,7 +13,10 @@
 
   <ItemGroup>
     <PackageReference Include="mediabrowser.server.core" Version="4.9.1.80" />
-    <EmbeddedResource Include="plugin.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="OriginalPosterLogo.png" />
   </ItemGroup>
 
 </Project>
