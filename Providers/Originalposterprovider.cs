@@ -2,6 +2,7 @@
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
+using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Dto;
@@ -39,13 +40,15 @@ namespace OriginalPoster.Providers
 
         public bool Supports(BaseItem item)
         {
-            var supported = item is Movie;
+//            var supported = item is Movie;
+            var supported = item is Movie || item is Series; // ✅ 支持电影和剧集
             _logger.Debug("[OriginalPoster] Supports check for {0}: {1}", item.Name, supported);
             return supported;
         }
 
         public async Task<IEnumerable<RemoteImageInfo>> GetImages(
             BaseItem item,
+            ImageType imageType, 
             LibraryOptions libraryOptions,
             CancellationToken cancellationToken)
         {
@@ -134,8 +137,18 @@ namespace OriginalPoster.Providers
                 _logger?.Debug("[OriginalPoster] Fetching images for TMDB ID: {0}, language: {1}", tmdbId, targetLanguage);
                 var result = await tmdbClient.GetImagesAsync(tmdbId, item is Movie, targetLanguage, cancellationToken);
 
-                //images = ConvertToRemoteImageInfo(result, targetLanguage);
-                images = ConvertToRemoteImageInfo(result, targetLanguage, config.PosterSelectionStrategy);
+                if (imageType == ImageType.Primary)
+                {
+                    return ConvertToRemoteImageInfo(result.posters, targetLanguage, config.MetadataLanguage, config.PosterSelectionStrategy, ImageType.Primary);
+                }
+                else if (imageType == ImageType.Logo)
+                {
+                    return ConvertToRemoteImageInfo(result.logos, targetLanguage, config.MetadataLanguage, config.PosterSelectionStrategy, ImageType.Logo);
+                }
+            
+                return Enumerable.Empty<RemoteImageInfo>();
+
+//                images = ConvertToRemoteImageInfo(result, targetLanguage, config.PosterSelectionStrategy);
                 _logger?.Debug("[OriginalPoster] Fetched {0} images from TMDB", images.Count());
             }
             catch (Exception ex)
@@ -158,17 +171,21 @@ namespace OriginalPoster.Providers
 
 		// 替换 OriginalPosterProvider.cs 中现有的 ConvertToRemoteImageInfo 方法
 		private IEnumerable<RemoteImageInfo> ConvertToRemoteImageInfo(
-		    TmdbImageResult tmdbResult,
+		    TmdbImage[] images,
 		    string targetLanguage,
-		    PosterSelectionStrategy strategy)
+		    string metadataLanguage,
+		    PosterSelectionStrategy strategy,
+		    ImageType imageType)
 		{
-		    if (tmdbResult?.posters == null || tmdbResult.posters.Length == 0)
+		    //if (tmdbResult?.posters == null || tmdbResult.posters.Length == 0)
+		    if (images == null || images.Length == 0)
 		        return Array.Empty<RemoteImageInfo>();
 		
     		var config = Plugin.Instance?.Configuration;
 		
 		    // 1. 计算每个海报的“策略性”最终评分
-		    var candidates = tmdbResult.posters
+		    //var candidates = tmdbResult.posters
+		    var candidates = images
 		       .Where(p =>!string.IsNullOrEmpty(p.file_path))
 		       .Select(poster => new
 		        {
@@ -188,12 +205,13 @@ namespace OriginalPoster.Providers
 		    var result = sorted.Select(x => new RemoteImageInfo
 		    {
 		        ProviderName = Name,
-		        Type = ImageType.Primary,
+//		        Type = ImageType.Primary,
+		        Type = imageType, // ✅ 动态设置类型（Primary 或 Logo）
 		        Url = $"https://image.tmdb.org/t/p/original{x.Poster.file_path}",
 		        ThumbnailUrl = $"https://image.tmdb.org/t/p/w500{x.Poster.file_path}",
-                Language = string.IsNullOrEmpty(config?.MetadataLanguage) 
+                Language = string.IsNullOrEmpty(MetadataLanguage) 
                     ? x.DisplayLang 
-                    : config.MetadataLanguage, // 强制使用元数据语言
+                    : MetadataLanguage, // 强制使用元数据语言
 //                DisplayLanguage = GetDisplayLanguage(
 //                    string.IsNullOrEmpty(config?.MetadataLanguage) 
 //                        ? x.DisplayLang 
@@ -304,12 +322,15 @@ namespace OriginalPoster.Providers
 
         public IEnumerable<ImageType> GetSupportedImages(BaseItem item)
         {
-            return new[] { ImageType.Primary };
+//            return new[] { ImageType.Primary };
+            return new[] { ImageType.Primary, ImageType.Logo }; // ✅ 添加 Logo
         }
 
         public bool Supports(BaseItem item, ImageType imageType)
         {
-            return imageType == ImageType.Primary && Supports(item);
+//            return imageType == ImageType.Primary && Supports(item);
+            return (imageType == ImageType.Primary || imageType == ImageType.Logo)
+                    && Supports(item);
         }
 
         public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken cancellationToken)

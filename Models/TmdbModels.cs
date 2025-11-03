@@ -35,6 +35,7 @@ namespace OriginalPoster.Models
         /// 海报列表
         /// </summary>
         public TmdbImage[] posters { get; set; }
+        public TmdbImage[] logos { get; set; }
     }
 
     /// <summary>
