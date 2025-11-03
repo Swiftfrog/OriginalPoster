@@ -30,28 +30,19 @@ namespace OriginalPoster
             Instance = this;
         }
 
-        // --- 2. 添加这个 ThumbImage 属性 ---
-        public Stream ThumbImage
+        // 添加这个 ThumbImage 属性
+        public Stream GetThumbImage()
         {
-            get
-            {
-                // 获取当前程序集
-                var assembly = GetType().Assembly;
-
-                // 构造资源的清单名称
-                // 格式: [默认命名空间].[文件夹(如果有)].[文件名]
-                // 
-                // 你的命名空间是 "OriginalPoster"
-                // 假设你的 logo 文件叫 "logo.png" 并且在项目根目录
-                string resourceName = "OriginalPoster.logo.png";
-
-                // **** 注意 ****
-                // 如果你把 logo.png 放在了一个叫 "Images" 的文件夹里
-                // 那么资源名应该是: "OriginalPoster.Images.logo.png"
-                
-                return assembly.GetManifestResourceStream(resourceName);
-            }
+            var assembly = GetType().Assembly;
+            
+            // 你的命名空间是 "OriginalPoster"
+            // 你在 .csproj 里嵌入的文件是 "logo.png"
+            // 所以正确的资源名是 "OriginalPoster.logo.png"
+            string resourceName = "OriginalPoster.logo.png";
+            
+            return assembly.GetManifestResourceStream(resourceName);
         }
+        public ImageFormat ThumbImageFormat => ImageFormat.Png;
 
     }
 }
