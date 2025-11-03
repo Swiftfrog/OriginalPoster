@@ -204,7 +204,7 @@ namespace OriginalPoster.Providers
 		        Url = $"https://image.tmdb.org/t/p/original{x.Poster.file_path}",
 		        ThumbnailUrl = $"https://image.tmdb.org/t/p/w500{x.Poster.file_path}",
 		        Language = x.DisplayLang,
-		        DisplayLanguage = GetDisplayLanguage(x.DisplayLang),
+		        // DisplayLanguage = GetDisplayLanguage(x.DisplayLang),
                 DisplayLanguage = string.IsNullOrEmpty(config?.DisplayLanguageOverride)
                     ? GetDisplayLanguage(x.DisplayLang)   // 默认
                     : config.DisplayLanguageOverride,     // ✅ 强制覆盖（如 "Chinese"）		        
