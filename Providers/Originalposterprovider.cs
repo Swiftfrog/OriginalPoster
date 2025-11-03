@@ -61,16 +61,21 @@ namespace OriginalPoster.Providers
             if (config?.TestMode == true)
             {
                 _logger?.Debug("[OriginalPoster] Test mode enabled, returning test poster");
+                
+                string testlangCode = !string.IsNullOrWhiteSpace(config.MetadataLanguage) 
+                    ? config.MetadataLanguage.Trim() // 顺便 Trim 一下
+                    : "en";
+                
                 var testImage = new RemoteImageInfo
                 {
                     ProviderName = Name,
                     Type = ImageType.Primary,
                     Url = config.TestPosterUrl.Trim(),
                     ThumbnailUrl = config.TestPosterUrl.Trim(),
-                    Language = "zh-HK",
-                    DisplayLanguage = "Korean",
-                    Width = 1000,
-                    Height = 1500,
+                    Language = testlangCode,
+                    DisplayLanguage = GetDisplayLanguage(testlangCode),
+                    Width = 2000,
+                    Height = 3000,
                     CommunityRating = 10,
                     VoteCount = 100,
                     RatingType = RatingType.Score
