@@ -66,7 +66,7 @@ namespace OriginalPoster.Providers
                     Type = ImageType.Primary,
                     Url = config.TestPosterUrl.Trim(),
                     ThumbnailUrl = config.TestPosterUrl.Trim(),
-                    Language = "zh",
+                    Language = "en",
                     DisplayLanguage = "Chinese",
                     Width = 1000,
                     Height = 1500,
@@ -92,20 +92,18 @@ namespace OriginalPoster.Providers
 
                 // 1. 获取项目详情以确定原产国
                 var details = await tmdbClient.GetItemDetailsAsync(tmdbId, item is Movie, cancellationToken);
-                string targetLanguage = "ko"; // 默认英语
+                string targetLanguage = "en"; // 默认英语
 
-                // ✅ 优先使用 original_language
-                if (!string.IsNullOrEmpty(details.original_language))
+                // 1. 优先 original_language
+                if (!string.IsNullOrEmpty(details?.original_language))
                 {
                     targetLanguage = details.original_language;
-                    _logger?.Debug("[OriginalPoster] Using original_language: {0}", targetLanguage);
                 }
-                else if (details?.production_countries?.Length > 0)
+                // 2. 其次 origin_country[0]
+                else if (details?.origin_country?.Length > 0)
                 {
-                    // 回退到 production_countries
-                    var primaryCountry = details.production_countries[0].iso_3166_1;
-                    targetLanguage = LanguageMapper.GetLanguageForCountry(primaryCountry);
-                    _logger?.Debug("[OriginalPoster] Primary country: {0}, mapped language: {1}", primaryCountry, targetLanguage);
+                    var originCountry = details.origin_country[0];
+                    targetLanguage = LanguageMapper.GetLanguageForCountry(originCountry);
                 }
 
                 // 2. 获取该语言的海报

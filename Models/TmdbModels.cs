@@ -10,6 +10,7 @@ namespace OriginalPoster.Models
     {
         public string id { get; set; }
         public string original_language { get; set; }
+        public string[] origin_country { get; set; }
         public ProductionCountry[] production_countries { get; set; }
     }
 
