@@ -16,9 +16,16 @@ namespace OriginalPoster
         /// <summary>
         /// 是否启用插件
         /// </summary>
-        [DisplayName("启用插件")]
+        [DisplayName("启用原语言海报")]
         [Description("是否启用 TMDB 原语言海报功能")]
         public bool Enabled { get; set; } = true;
+        
+        /// <summary>
+        /// 是否启用原语言LOGO
+        /// </summary>
+        [DisplayName("启用原语言 Logo")]
+        [Description("从 TMDB 获取原语言/无文字 Logo")]
+        public bool EnableOriginalLogo { get; set; } = true;
         
         /// <summary>
         /// TMDB API 密钥

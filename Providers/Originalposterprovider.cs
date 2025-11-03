@@ -52,6 +52,14 @@ namespace OriginalPoster.Providers
             CancellationToken cancellationToken)
         {
             var config = Plugin.Instance?.Configuration;
+            
+            // 全局开关：插件是否启用
+            if (config?.Enabled != true)
+            {
+                return Enumerable.Empty<RemoteImageInfo>();
+                _logger?.Debug("[OriginalPoster] Please Enable Plugin");
+            }
+            
             _logger?.Debug("[OriginalPoster] GetImages called for: {0}", item.Name);
 
             var images = Enumerable.Empty<RemoteImageInfo>();
@@ -82,6 +90,7 @@ namespace OriginalPoster.Providers
                 _logger?.Debug("[OriginalPoster] Returning 1 test image");
                 return new[] { testImage };
             }
+            // === 第一阶段：测试模式 ===
 
             // === 自动语言识别 ===
             var tmdbId = GetTmdbId(item);
@@ -131,6 +140,7 @@ namespace OriginalPoster.Providers
                     targetLanguage = LanguageMapper.GetLanguageForCountry(fallbackCountry);
                 }
                 // 4. 最终兜底 "en"
+                // === 自动语言识别 ===
 
                 // 2. 获取该语言的海报
                 _logger?.Debug("[OriginalPoster] Fetching images for TMDB ID: {0}, language: {1}", tmdbId, targetLanguage);
@@ -147,13 +157,15 @@ namespace OriginalPoster.Providers
                 }
 
                 // 添加 Logo
-                if (result.logos != null)
+                if (result.logos != null && config.EnableOriginalLogo)
                 {
                     allImages.AddRange(ConvertToRemoteImageInfo(
                         result.logos, targetLanguage, config.MetadataLanguage, 
                         config.PosterSelectionStrategy, ImageType.Logo));
                 }
+                
                 _logger?.Debug("[OriginalPoster] Fetched {0} images from TMDB", allImages.Count());
+                
                 return allImages;
 
 //                if (imageType == ImageType.Primary)
