@@ -66,7 +66,7 @@ namespace OriginalPoster.Providers
                     Type = ImageType.Primary,
                     Url = config.TestPosterUrl.Trim(),
                     ThumbnailUrl = config.TestPosterUrl.Trim(),
-                    Language = "zh",
+                    Language = "zh-HK",
                     DisplayLanguage = "Korean",
                     Width = 1000,
                     Height = 1500,
