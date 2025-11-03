@@ -1,11 +1,11 @@
 // Plugin.cs
 using MediaBrowser.Common;
 using MediaBrowser.Common.Configuration;
-using MediaBrowser.Controller.Drawing;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Controller.Plugins;
 using MediaBrowser.Model.Drawing;
 using MediaBrowser.Model.Serialization;
+using System.IO;
 using System;
 
 namespace OriginalPoster
