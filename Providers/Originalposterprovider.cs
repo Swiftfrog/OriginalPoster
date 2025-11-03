@@ -305,39 +305,6 @@ namespace OriginalPoster.Providers
             }
         }
 
-//        private string GetDisplayLanguage(string langCode)
-//        {
-//            return langCode switch
-//            {
-//                "en" => "English",
-//                "zh" => "Chinese",
-//                "ja" => "Japanese",
-//                "ko" => "Korean",
-//                "fr" => "French",
-//                "de" => "German",
-//                "es" => "Spanish",
-//                "it" => "Italian",
-//                "ru" => "Russian",
-//                "ar" => "Arabic",
-//                "hi" => "Hindi",
-//                "th" => "Thai",
-//                "pt" => "Portuguese",
-//                "nl" => "Dutch",
-//                "sv" => "Swedish",
-//                "no" => "Norwegian",
-//                "da" => "Danish",
-//                "fi" => "Finnish",
-//                "pl" => "Polish",
-//                "cs" => "Czech",
-//                "hu" => "Hungarian",
-//                "el" => "Greek",
-//                "tr" => "Turkish",
-//                "he" => "Hebrew",
-//                "fa" => "Persian",
-//                _ => langCode.ToUpperInvariant()
-//            };
-//        }
-
         public IEnumerable<ImageType> GetSupportedImages(BaseItem item)
         {
             return new[] { ImageType.Primary };
@@ -350,7 +317,7 @@ namespace OriginalPoster.Providers
 
         public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken cancellationToken)
         {
-            // ✅ 新增日志：记录 Emby 实际请求的图片（即最终选中的）
+            // 记录 Emby 实际请求的图片（即最终选中的）
             _logger?.Info("[OriginalPoster] Emby selected image for download: {0}", url);
             
             return _httpClient.GetResponse(new HttpRequestOptions
