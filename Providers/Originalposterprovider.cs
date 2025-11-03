@@ -20,9 +20,6 @@ using System.Threading.Tasks;
 
 namespace OriginalPoster.Providers
 {
-    /// <summary>
-    /// 原语言海报提供者 - 第三阶段：支持自动识别原语言
-    /// </summary>
     public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
     {
         private readonly IHttpClient _httpClient;
@@ -84,7 +81,7 @@ namespace OriginalPoster.Providers
                 return new[] { testImage };
             }
 
-            // === 第三阶段：自动语言识别 ===
+            // === 自动语言识别 ===
             var tmdbId = GetTmdbId(item);
             if (string.IsNullOrEmpty(tmdbId))
             {
