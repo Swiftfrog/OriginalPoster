@@ -67,7 +67,7 @@ namespace OriginalPoster.Providers
                     Url = config.TestPosterUrl.Trim(),
                     ThumbnailUrl = config.TestPosterUrl.Trim(),
                     Language = "ko",
-                    DisplayLanguage = "Korean",
+                    DisplayLanguage = "Chinese",
                     Width = 1000,
                     Height = 1500,
                     CommunityRating = 8.5,
@@ -92,19 +92,53 @@ namespace OriginalPoster.Providers
 
                 // 1. 获取项目详情以确定原产国
                 var details = await tmdbClient.GetItemDetailsAsync(tmdbId, item is Movie, cancellationToken);
-                string targetLanguage = "en"; // 默认英语
+//                string targetLanguage = "en"; // 默认英语
+//
+//                // 1. 优先 original_language
+//                if (!string.IsNullOrEmpty(details?.original_language))
+//                {
+//                    targetLanguage = details.original_language;
+//                }
+//                // 2. 其次 origin_country[0]
+//                else if (details?.origin_country?.Length > 0)
+//                {
+//                    var originCountry = details.origin_country[0];
+//                    targetLanguage = LanguageMapper.GetLanguageForCountry(originCountry);
+//                }
 
-                // 1. 优先 original_language
-                if (!string.IsNullOrEmpty(details?.original_language))
-                {
-                    targetLanguage = details.original_language;
-                }
-                // 2. 其次 origin_country[0]
-                else if (details?.origin_country?.Length > 0)
+                string targetLanguage = "en";
+                // 1. 优先 origin_country
+                if (details?.origin_country?.Length > 0)
                 {
                     var originCountry = details.origin_country[0];
                     targetLanguage = LanguageMapper.GetLanguageForCountry(originCountry);
                 }
+                // 2. 其次 original_language + production_countries 联合推断
+                else if (!string.IsNullOrEmpty(details?.original_language) && details?.production_countries?.Length > 0)
+                {
+                    var originalLang = details.original_language;
+                    // 尝试在 production_countries 中找匹配该语言的国家
+                    var matchingCountry = details.production_countries
+                        .FirstOrDefault(c => LanguageMapper.GetLanguageForCountry(c.iso_3166_1) == originalLang);
+                
+                    if (matchingCountry != null)
+                    {
+                        targetLanguage = originalLang; // 语言一致，可信
+                    }
+                    else
+                    {
+                        // 无匹配国家，仍使用 original_language（如 en 但国家是 JP，极少情况）
+                        targetLanguage = originalLang;
+                    }
+                }
+                // 3. 再次兜底 production_countries[0]
+                else if (details?.production_countries?.Length > 0)
+                {
+                    var fallbackCountry = details.production_countries[0].iso_3166_1;
+                    targetLanguage = LanguageMapper.GetLanguageForCountry(fallbackCountry);
+                }
+                // 4. 最终兜底 "en"
+
 
                 // 2. 获取该语言的海报
                 _logger?.Debug("[OriginalPoster] Fetching images for TMDB ID: {0}, language: {1}", tmdbId, targetLanguage);
@@ -150,7 +184,8 @@ namespace OriginalPoster.Providers
 		            OriginalLang = poster.iso_639_1,
 		            DisplayLang = poster.iso_639_1?? targetLanguage,
 		            // 核心修复：在这里预先计算最终评分
-		            CalculatedRating = GetStrategyBasedRating(poster, poster.iso_639_1, targetLanguage, strategy)
+		            // CalculatedRating = GetStrategyBasedRating(poster, poster.iso_639_1, targetLanguage, strategy)
+		            CalculatedRating = GetStrategyBasedRating(poster, targetLanguage, strategy)
 		        });
 		
 		    // 2. 仅按“最终评分”排序
@@ -195,30 +230,61 @@ namespace OriginalPoster.Providers
 		/// <summary>
 		/// 根据用户策略计算海报的最终评分（基础分 + 奖励分）
 		/// </summary>
-		private double GetStrategyBasedRating(OriginalPoster.Models.TmdbImage poster, string originalLang, string targetLanguage, PosterSelectionStrategy strategy)
-		{
-		    double baseRating = poster.vote_average;
-		
-		    switch (strategy)
-		    {
-		        case PosterSelectionStrategy.OriginalLanguageFirst:
-		            if (originalLang == targetLanguage) return baseRating + 20; // 原语言 +20
-		            if (originalLang == null) return baseRating + 10;           // 无文字 +10
-		            return baseRating; // 其他语言
-		
-		        case PosterSelectionStrategy.NoTextPosterFirst:
-		            if (originalLang == null) return baseRating + 20;           // 无文字 +20
-		            if (originalLang == targetLanguage) return baseRating + 10; // 原语言 +10
-		            return baseRating; // 其他语言
-		
-		        case PosterSelectionStrategy.HighestRatingFirst:
-		        default:
-		            // 即使是“最高评分”，我们仍然需要为我们的候选海报（原语言和无文字）
-		            // 增加一个适度的奖励，以确保它们能战胜来自Emby默认TMDB供应的相同海报。
-		            // if (originalLang == targetLanguage || originalLang == null) return baseRating + 10;
-		            return baseRating; // 其他语言不加分
-		    }
-		}
+//		private double GetStrategyBasedRating(TmdbImage poster, string originalLang, string targetLanguage, PosterSelectionStrategy strategy)
+//		{
+//		    double baseRating = poster.vote_average;
+//		
+//		    switch (strategy)
+//		    {
+//		        case PosterSelectionStrategy.OriginalLanguageFirst:
+//		            if (originalLang == targetLanguage) return baseRating + 20; // 原语言 +20
+//		            if (originalLang == null) return baseRating + 10;           // 无文字 +10
+//		            return baseRating; // 其他语言
+//		
+//		        case PosterSelectionStrategy.NoTextPosterFirst:
+//		            if (originalLang == null) return baseRating + 20;           // 无文字 +20
+//		            if (originalLang == targetLanguage) return baseRating + 10; // 原语言 +10
+//		            return baseRating; // 其他语言
+//		
+//		        case PosterSelectionStrategy.HighestRatingFirst:
+//		        default:
+//		            // 即使是“最高评分”，我们仍然需要为我们的候选海报（原语言和无文字）
+//		            // 增加一个适度的奖励，以确保它们能战胜来自Emby默认TMDB供应的相同海报。
+//		            // if (originalLang == targetLanguage || originalLang == null) return baseRating + 10;
+//		            return baseRating; // 其他语言不加分
+//		    }
+//		}
+
+        /// <summary>
+        /// 根据用户策略计算海报的最终评分（基础分 + 奖励分）
+        /// </summary>
+        private double GetStrategyBasedRating(
+            TmdbImage poster,                  // ✅ 只需传入完整对象
+            string targetLanguage,             // 目标语言（用于判断是否“原语言”）
+            PosterSelectionStrategy strategy)  // 策略
+        {
+            if (poster == null) return 0;
+        
+            double baseRating = poster.vote_average;
+            string originalLang = poster.iso_639_1; // ✅ 内部直接读取
+        
+            switch (strategy)
+            {
+                case PosterSelectionStrategy.OriginalLanguageFirst:
+                    if (originalLang == targetLanguage) return baseRating + 20;
+                    if (originalLang == null) return baseRating + 10;
+                    return baseRating;
+        
+                case PosterSelectionStrategy.NoTextPosterFirst:
+                    if (originalLang == null) return baseRating + 20;
+                    if (originalLang == targetLanguage) return baseRating + 10;
+                    return baseRating;
+        
+                case PosterSelectionStrategy.HighestRatingFirst:
+                default:
+                    return baseRating;
+            }
+        }
 
         private string GetDisplayLanguage(string langCode)
         {
