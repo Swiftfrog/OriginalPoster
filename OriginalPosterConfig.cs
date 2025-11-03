@@ -27,6 +27,10 @@ namespace OriginalPoster
         [Description("在 https://www.themoviedb.org/settings/api 获取")]
         public string TmdbApiKey { get; set; } = string.Empty;
         
+        [DisplayName("显示语言（Display Language）")]
+        [Description("设置为与 Emby 媒体库的“首选元数据语言”一致，例如 Chinese、English。留空则使用原语言显示。")]
+        public string DisplayLanguageOverride { get; set; } = "Chinese";
+        
         [DisplayName("海报选择策略")]
         [Description("选择原语言海报时的优先级策略")]
         public PosterSelectionStrategy PosterSelectionStrategy { get; set; } = PosterSelectionStrategy.OriginalLanguageFirst;

@@ -70,7 +70,7 @@ namespace OriginalPoster.Providers
                     DisplayLanguage = "Chinese",
                     Width = 1000,
                     Height = 1500,
-                    CommunityRating = 8.5,
+                    CommunityRating = 10,
                     VoteCount = 100,
                     RatingType = RatingType.Score
                 };
@@ -170,6 +170,7 @@ namespace OriginalPoster.Providers
 		private IEnumerable<RemoteImageInfo> ConvertToRemoteImageInfo(
 		    TmdbImageResult tmdbResult,
 		    string targetLanguage,
+		    string metadataLanguage,
 		    PosterSelectionStrategy strategy)
 		{
 		    if (tmdbResult?.posters == null || tmdbResult.posters.Length == 0)
@@ -203,6 +204,9 @@ namespace OriginalPoster.Providers
 		        ThumbnailUrl = $"https://image.tmdb.org/t/p/w500{x.Poster.file_path}",
 		        Language = x.DisplayLang,
 		        DisplayLanguage = GetDisplayLanguage(x.DisplayLang),
+                DisplayLanguage = string.IsNullOrEmpty(config?.DisplayLanguageOverride)
+                    ? GetDisplayLanguage(x.DisplayLang)   // 默认
+                    : config.DisplayLanguageOverride,     // ✅ 强制覆盖（如 "Chinese"）		        
 		        Width = x.Poster.width,
 		        Height = x.Poster.height,
 		        
@@ -221,6 +225,32 @@ namespace OriginalPoster.Providers
 		        _logger?.Info("[OriginalPoster] Returned image #{0}: URL={1}, Language={2}, Rating={3}",
 		            i + 1, img.Url, img.Language, img.CommunityRating);
 		    }
+		    
+//            // ✅ 关键：如果配置了 MetadataLanguage 且不等于 targetLanguage，额外返回一张“伪装成元数据语言”的海报
+//            if (!string.IsNullOrEmpty(metadataLanguage) && 
+//                !string.Equals(metadataLanguage, targetLanguage, StringComparison.OrdinalIgnoreCase))
+//            {
+//                // 克隆最高评分的原语言海报，但 Language 设为 metadataLanguage
+//                var topImage = result.FirstOrDefault();
+//                if (topImage != null)
+//                {
+//                    var compatibleImage = new RemoteImageInfo
+//                    {
+//                        ProviderName = Name,
+//                        Type = ImageType.Primary,
+//                        Url = topImage.Url,
+//                        ThumbnailUrl = topImage.ThumbnailUrl,
+//                        Language = metadataLanguage, // 👈 伪装成用户设置的语言
+//                        DisplayLanguage = GetDisplayLanguage(metadataLanguage),
+//                        Width = topImage.Width,
+//                        Height = topImage.Height,
+//                        CommunityRating = topImage.CommunityRating + 5, // 略高一点确保被选
+//                        VoteCount = topImage.VoteCount,
+//                        RatingType = RatingType.Score
+//                    };
+//                    result.Insert(0, compatibleImage); // 插入最前面
+//                }
+//            }
 		
 		    return result;
 		}
@@ -230,30 +260,30 @@ namespace OriginalPoster.Providers
 		/// <summary>
 		/// 根据用户策略计算海报的最终评分（基础分 + 奖励分）
 		/// </summary>
-//		private double GetStrategyBasedRating(TmdbImage poster, string originalLang, string targetLanguage, PosterSelectionStrategy strategy)
-//		{
-//		    double baseRating = poster.vote_average;
-//		
-//		    switch (strategy)
-//		    {
-//		        case PosterSelectionStrategy.OriginalLanguageFirst:
-//		            if (originalLang == targetLanguage) return baseRating + 20; // 原语言 +20
-//		            if (originalLang == null) return baseRating + 10;           // 无文字 +10
-//		            return baseRating; // 其他语言
-//		
-//		        case PosterSelectionStrategy.NoTextPosterFirst:
-//		            if (originalLang == null) return baseRating + 20;           // 无文字 +20
-//		            if (originalLang == targetLanguage) return baseRating + 10; // 原语言 +10
-//		            return baseRating; // 其他语言
-//		
-//		        case PosterSelectionStrategy.HighestRatingFirst:
-//		        default:
-//		            // 即使是“最高评分”，我们仍然需要为我们的候选海报（原语言和无文字）
-//		            // 增加一个适度的奖励，以确保它们能战胜来自Emby默认TMDB供应的相同海报。
-//		            // if (originalLang == targetLanguage || originalLang == null) return baseRating + 10;
-//		            return baseRating; // 其他语言不加分
-//		    }
-//		}
+        //		private double GetStrategyBasedRating(TmdbImage poster, string originalLang, string targetLanguage, PosterSelectionStrategy strategy)
+        //		{
+        //		    double baseRating = poster.vote_average;
+        //		
+        //		    switch (strategy)
+        //		    {
+        //		        case PosterSelectionStrategy.OriginalLanguageFirst:
+        //		            if (originalLang == targetLanguage) return baseRating + 20; // 原语言 +20
+        //		            if (originalLang == null) return baseRating + 10;           // 无文字 +10
+        //		            return baseRating; // 其他语言
+        //		
+        //		        case PosterSelectionStrategy.NoTextPosterFirst:
+        //		            if (originalLang == null) return baseRating + 20;           // 无文字 +20
+        //		            if (originalLang == targetLanguage) return baseRating + 10; // 原语言 +10
+        //		            return baseRating; // 其他语言
+        //		
+        //		        case PosterSelectionStrategy.HighestRatingFirst:
+        //		        default:
+        //		            // 即使是“最高评分”，我们仍然需要为我们的候选海报（原语言和无文字）
+        //		            // 增加一个适度的奖励，以确保它们能战胜来自Emby默认TMDB供应的相同海报。
+        //		            // if (originalLang == targetLanguage || originalLang == null) return baseRating + 10;
+        //		            return baseRating; // 其他语言不加分
+        //		    }
+        //		}
 
         /// <summary>
         /// 根据用户策略计算海报的最终评分（基础分 + 奖励分）
