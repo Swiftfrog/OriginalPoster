@@ -28,7 +28,7 @@ namespace OriginalPoster.Providers
         private readonly ILogger _logger;
         private readonly IJsonSerializer _jsonSerializer;
 
-        public string Name => "TMDB Original Language";
+        public string Name => "Origal Poster TMDB";
         public int Order => 0;
 
         public OriginalPosterProvider(IHttpClient httpClient, ILogger logger, IJsonSerializer jsonSerializer)
