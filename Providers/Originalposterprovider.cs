@@ -56,8 +56,8 @@ namespace OriginalPoster.Providers
             // 全局开关：插件是否启用
             if (config?.Enabled != true)
             {
-                return Enumerable.Empty<RemoteImageInfo>();
                 _logger?.Debug("[OriginalPoster] Please Enable Plugin");
+                return Enumerable.Empty<RemoteImageInfo>();
             }
             
             _logger?.Debug("[OriginalPoster] GetImages called for: {0}", item.Name);
