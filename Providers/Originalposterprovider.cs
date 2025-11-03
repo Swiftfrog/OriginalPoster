@@ -228,9 +228,9 @@ namespace OriginalPoster.Providers
 		        Type = imageType, // ✅ 动态设置类型（Primary 或 Logo）
 		        Url = $"https://image.tmdb.org/t/p/original{x.Poster.file_path}",
 		        ThumbnailUrl = $"https://image.tmdb.org/t/p/w500{x.Poster.file_path}",
-                Language = string.IsNullOrEmpty(MetadataLanguage) 
+                Language = string.IsNullOrEmpty(metadataLanguage) 
                     ? x.DisplayLang 
-                    : MetadataLanguage, // 强制使用元数据语言
+                    : metadataLanguage, // 强制使用元数据语言
 		        DisplayLanguage = GetDisplayLanguage(x.DisplayLang),
     	        Width = x.Poster.width,
 		        Height = x.Poster.height,
