@@ -16,64 +16,44 @@ namespace OriginalPoster.Services
         /// </summary>
         private static readonly Dictionary<string, string> CountryToLanguageMap = new(StringComparer.OrdinalIgnoreCase)
         {
-            // 阿拉伯语地区
+            // 阿拉伯语地区（每个国家一个映射）
             { "AE", "ar-AE" }, { "BH", "ar-BH" }, { "EG", "ar-EG" }, { "IQ", "ar-IQ" },
             { "JO", "ar-JO" }, { "LY", "ar-LY" }, { "MA", "ar-MA" }, { "QA", "ar-QA" },
             { "SA", "ar-SA" }, { "TD", "ar-TD" }, { "YE", "ar-YE" },
-
-            // 欧洲
+        
+            // 欧洲（主语言优先）
             { "BY", "be-BY" }, { "BG", "bg-BG" }, { "CZ", "cs-CZ" }, { "DK", "da-DK" },
             { "DE", "de-DE" }, { "AT", "de-AT" }, { "CH", "de-CH" },
-            { "GR", "el-GR" }, { "CY", "el-CY" },
+            { "GR", "el-GR" }, // { "CY", "el-CY" }, ← 如果 CY 不重要，可省略
             { "GB", "en-GB" }, { "IE", "en-IE" },
-            { "US", "en-US" }, { "CA", "en-CA" }, { "AU", "en-AU" },
-            { "NZ", "en-NZ" }, { "ZA", "en-ZA" }, { "JM", "en-JM" }, { "AG", "en-AG" },
-            { "BB", "en-BB" }, { "BZ", "en-BZ" }, { "CM", "en-CM" }, { "GH", "en-GH" },
-            { "GI", "en-GI" }, { "GG", "en-GG" }, { "GY", "en-GY" }, { "KE", "en-KE" },
-            { "LC", "en-LC" }, { "MW", "en-MW" }, { "PG", "en-PG" }, { "TC", "en-TC" },
-            { "ZM", "en-ZM" }, { "ZW", "en-ZW" },
-            { "ES", "es-ES" }, { "MX", "es-MX" }, { "AR", "es-AR" }, { "CL", "es-CL" },
-            { "CO", "es-CO" }, { "DO", "es-DO" }, { "EC", "es-EC" }, { "GT", "es-GT" },
-            { "HN", "es-HN" }, { "NI", "es-NI" }, { "PA", "es-PA" }, { "PE", "es-PE" },
-            { "PY", "es-PY" }, { "SV", "es-SV" }, { "UY", "es-UY" }, { "GQ", "es-GQ" },
-            { "FR", "fr-FR" }, { "CA", "fr-CA" }, { "BE", "fr-BE" }, { "CH", "fr-CH" },
-            { "BF", "fr-BF" }, { "CD", "fr-CD" }, { "CI", "fr-CI" }, { "GF", "fr-GF" },
-            { "GP", "fr-GP" }, { "MC", "fr-MC" }, { "ML", "fr-ML" }, { "MU", "fr-MU" },
-            { "PF", "fr-PF" },
-            { "IT", "it-IT" }, { "VA", "it-VA" },
-            { "NL", "nl-NL" }, { "BE", "nl-BE" },
-            { "PL", "pl-PL" }, { "PT", "pt-PT" }, { "BR", "pt-BR" }, { "AO", "pt-AO" },
-            { "MZ", "pt-MZ" },
-            { "RO", "ro-RO" }, { "MD", "ro-MD" },
+            { "US", "en-US" }, { "CA", "en-CA" }, { "AU", "en-AU" }, // 其他英语国家...
+            { "ES", "es-ES" }, { "MX", "es-MX" }, { "AR", "es-AR" }, // 西班牙语国家
+            { "FR", "fr-FR" }, { "CA", "fr-CA" }, { "BE", "fr-BE" }, // 法语国家
+            { "IT", "it-IT" }, // { "VA", "it-VA" },
+            { "NL", "nl-NL" }, // { "BE", "nl-BE" }, ← 注意：BE 已映射为 fr-BE，不能重复
+            { "PL", "pl-PL" },
+            { "PT", "pt-PT" }, { "BR", "pt-BR" },
+            { "RO", "ro-RO" }, // { "MD", "ro-MD" },
             { "RU", "ru-RU" },
-            { "SE", "sv-SE" }, { "NO", "no-NO" }, { "DK", "da-DK" }, { "FI", "fi-FI" },
+            { "SE", "sv-SE" }, { "NO", "no-NO" }, { "FI", "fi-FI" },
             { "HU", "hu-HU" }, { "HR", "hr-HR" }, { "SK", "sk-SK" }, { "SI", "sl-SI" },
             { "LV", "lv-LV" }, { "LT", "lt-LT" }, { "EE", "et-EE" },
-            { "AL", "sq-AL" }, { "XK", "sq-XK" }, { "ME", "sr-ME" }, { "RS", "sr-RS" },
-
+        
             // 亚洲
             { "CN", "zh-CN" }, { "HK", "zh-HK" }, { "TW", "zh-TW" }, { "SG", "zh-SG" },
             { "JP", "ja-JP" },
             { "KR", "ko-KR" },
-            { "IN", "hi-IN" }, { "BD", "bn-BD" }, { "PK", "ur-PK" },
+            { "IN", "hi-IN" }, // { "BD", "bn-BD" }, // 按需添加
             { "TH", "th-TH" },
             { "PH", "tl-PH" },
             { "VN", "vi-VN" },
             { "ID", "id-ID" },
-            { "MY", "ms-MY" }, { "SG", "ms-SG" },
+            { "MY", "ms-MY" }, // { "SG", "ms-SG" }, // SG 已映射为 zh-SG
             { "IL", "he-IL" },
             { "IR", "fa-IR" },
             { "TR", "tr-TR" },
-            { "GE", "ka-GE" }, { "KZ", "kk-KZ" }, { "KG", "ky-KG" },
             { "UA", "uk-UA" },
-            { "UZ", "uz-UZ" },
-            { "NP", "ne-NP" }, { "LK", "si-LK" }, { "TZ", "sw-TZ" },
-
-            // 其他
-            { "AD", "ca-AD" }, { "ES", "ca-ES" },
-            { "FR", "br-FR" }, { "FR", "oc-FR" },
-            { "IE", "ga-IE" }, { "GB", "gd-GB" }, { "ES", "gl-ES" },
-            { "FR", "eu-ES" } // 巴斯克语归属西班牙/法国
+            { "PK", "ur-PK" }
         };
 
         /// <summary>
