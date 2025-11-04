@@ -40,7 +40,6 @@ namespace OriginalPoster.Providers
 
         public bool Supports(BaseItem item)
         {
-//            var supported = item is Movie || item is Series; // ✅ 支持电影和剧集
             var supported = item is Movie || item is Series || item is Season;
             _logger.Debug("[OriginalPoster] Supports check for {0}: {1}", item.Name, supported);
             return supported;
@@ -127,8 +126,7 @@ namespace OriginalPoster.Providers
                     // 电影或剧集：详情ID和图像ID是相同的
                     detailsTmdbId = imagesTmdbId;
                 }
-                // --- 修订结束 ---
-
+                // --- 关键修订：区分详情ID和图像ID ---
 
                 // 1. 获取项目详情以确定原产国
                 var details = await tmdbClient.GetItemDetailsAsync(detailsTmdbId, item is Movie, cancellationToken);
@@ -174,7 +172,7 @@ namespace OriginalPoster.Providers
 
                 var allImages = new List<RemoteImageInfo>();
 
-                // 添加海报
+                // 海报-movie, series, season
                 if (result.posters != null)
                 {
                     allImages.AddRange(ConvertToRemoteImageInfo(
@@ -182,7 +180,7 @@ namespace OriginalPoster.Providers
                         config.PosterSelectionStrategy, ImageType.Primary));
                 }
 
-                // 添加 Logo
+                // Logo
                 if (result.logos != null && config.EnableOriginalLogo)
                 {
                     allImages.AddRange(ConvertToRemoteImageInfo(
@@ -194,23 +192,9 @@ namespace OriginalPoster.Providers
                 
                 return allImages;
 
-//                if (imageType == ImageType.Primary)
-//                {
-//                    return ConvertToRemoteImageInfo(result.posters, targetLanguage, config.MetadataLanguage, config.PosterSelectionStrategy, ImageType.Primary);
-//                }
-//                else if (imageType == ImageType.Logo)
-//                {
-//                    return ConvertToRemoteImageInfo(result.logos, targetLanguage, config.MetadataLanguage, config.PosterSelectionStrategy, ImageType.Logo);
-//                }
-//            
-//                return Enumerable.Empty<RemoteImageInfo>();
-
-//                images = ConvertToRemoteImageInfo(result, targetLanguage, config.PosterSelectionStrategy);
-//                _logger?.Debug("[OriginalPoster] Fetched {0} images from TMDB", allImages.Count());
             }
             catch (Exception ex)
             {
-                //_logger?.Error(ex, "[OriginalPoster] Failed to fetch images from TMDB for {0}", item.Name);
                 _logger?.Error("[OriginalPoster] Failed to fetch images from TMDB for {0}. Error: {1}", item.Name, ex.Message);
             }
 
@@ -285,8 +269,7 @@ namespace OriginalPoster.Providers
 		    var result = sorted.Select(x => new RemoteImageInfo
 		    {
 		        ProviderName = Name,
-//		        Type = ImageType.Primary,
-		        Type = imageType, // ✅ 动态设置类型（Primary 或 Logo）
+		        Type = imageType, // 动态设置类型（Primary 或 Logo）
 		        Url = $"https://image.tmdb.org/t/p/original{x.Poster.file_path}",
 		        ThumbnailUrl = $"https://image.tmdb.org/t/p/w500{x.Poster.file_path}",
                 Language = string.IsNullOrEmpty(MetadataLanguage) 
@@ -371,7 +354,7 @@ namespace OriginalPoster.Providers
         
         private string GetDisplayLanguage(string langCode)
         {
-            // 1. 检查输入 (你的检查很好)
+            // 1. 检查输入
             if (string.IsNullOrWhiteSpace(langCode))
             {
                 return "Unknown";
@@ -385,24 +368,18 @@ namespace OriginalPoster.Providers
             }
             catch (CultureNotFoundException)
             {
-                 // （可选）在你的Emby插件日志中记录这个未知的代码
-                // Logger.LogWarning($"[MyPlugin] Found unknown language code from TMDB: {langCode}");
-                
                 return langCode.ToUpperInvariant();
             }
         }
 
         public IEnumerable<ImageType> GetSupportedImages(BaseItem item)
         {
-//            return new[] { ImageType.Primary };
-            return new[] { ImageType.Primary, ImageType.Logo }; // ✅ 添加 Logo
+            return new[] { ImageType.Primary, ImageType.Logo }; // Movie, Series, Season, Logo
         }
 
         public bool Supports(BaseItem item, ImageType imageType)
         {
-//            return imageType == ImageType.Primary && Supports(item);
-            return (imageType == ImageType.Primary || imageType == ImageType.Logo)
-                    && Supports(item);
+            return (imageType == ImageType.Primary || imageType == ImageType.Logo) && Supports(item);
         }
 
         public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken cancellationToken)
