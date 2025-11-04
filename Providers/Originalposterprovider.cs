@@ -361,17 +361,18 @@ namespace OriginalPoster.Providers
         
             double baseRating = poster.vote_average;
             string originalLang = poster.iso_639_1; // 内部直接读取
+            string targetLangBase = targetLanguage.Split('-')[0]; //提取 targetLanguage 的主语言部分（"zh-CN" → "zh"）
         
             switch (strategy)
             {
                 case PosterSelectionStrategy.OriginalLanguageFirst:
-                    if (originalLang == targetLanguage) return baseRating + 20;
+                    if (originalLang == targetLangBase) return baseRating + 20;
                     if (originalLang == null) return baseRating + 10;
                     return baseRating;
         
                 case PosterSelectionStrategy.NoTextPosterFirst:
                     if (originalLang == null) return baseRating + 20;
-                    if (originalLang == targetLanguage) return baseRating + 10;
+                    if (originalLang == targetLangBase) return baseRating + 10;
                     return baseRating;
         
                 case PosterSelectionStrategy.HighestRatingFirst:
