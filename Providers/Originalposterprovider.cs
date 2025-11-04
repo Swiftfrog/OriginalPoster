@@ -40,7 +40,6 @@ namespace OriginalPoster.Providers
 
         public bool Supports(BaseItem item)
         {
-//            var supported = item is Movie;
 //            var supported = item is Movie || item is Series; // ✅ 支持电影和剧集
             var supported = item is Movie || item is Series || item is Season;
             _logger.Debug("[OriginalPoster] Supports check for {0}: {1}", item.Name, supported);
@@ -111,7 +110,8 @@ namespace OriginalPoster.Providers
                 if (string.IsNullOrEmpty(imagesTmdbId))
                 {
                     _logger?.Debug("[OriginalPoster] No TMDB ID found for item, skipping");
-                    return images;
+                    //return images;
+                    return Enumerable.Empty<RemoteImageInfo>(); // 直接返回
                 }
 
                 string detailsTmdbId;
