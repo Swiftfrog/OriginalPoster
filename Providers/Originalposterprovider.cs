@@ -131,40 +131,76 @@ namespace OriginalPoster.Providers
                 // 1. 获取项目详情以确定原产国
                 var details = await tmdbClient.GetItemDetailsAsync(detailsTmdbId, item is Movie, cancellationToken);
 
-                string targetLanguage = "en";
-
-                // 1. 优先 origin_country
-                if (details?.origin_country?.Length > 0)
-                {
-                    var originCountry = details.origin_country[0];
-                    targetLanguage = LanguageMapper.GetLanguageForCountry(originCountry);
-                }
-                // 2. 其次 original_language + production_countries 联合推断
-                else if (!string.IsNullOrEmpty(details?.original_language) && details?.production_countries?.Length > 0)
-                {
-                    var originalLang = details.original_language;
-                    // 尝试在 production_countries 中找匹配该语言的国家
-                    var matchingCountry = details.production_countries
-                        .FirstOrDefault(c => LanguageMapper.GetLanguageForCountry(c.iso_3166_1) == originalLang);
+                string targetLanguage = "en"; // 默认兜底
                 
-                    if (matchingCountry != null)
-                    {
-                        targetLanguage = originalLang; // 语言一致，可信
-                    }
-                    else
-                    {
-                        // 无匹配国家，仍使用 original_language（如 en 但国家是 JP，极少情况）
-                        targetLanguage = originalLang;
-                    }
-                }
-                // 3. 再次兜底 production_countries[0]
-                else if (details?.production_countries?.Length > 0)
+                // 1. [最高优先级] 使用 original_language
+                if (!string.IsNullOrEmpty(details?.original_language))
                 {
-                    var fallbackCountry = details.production_countries[0].iso_3166_1;
-                    targetLanguage = LanguageMapper.GetLanguageForCountry(fallbackCountry);
+                    targetLanguage = details.original_language;
                 }
-                // 4. 最终兜底 "en"
-                // === 自动语言识别 ===
+                // 2. [联合备选] 如果 original_language 为空，尝试用 country → language，并验证一致性
+                else if (details != null)
+                {
+                    string[] candidateCountries = null;
+                
+                    // 优先尝试 origin_country（剧集常用）
+                    if (details.origin_country?.Length > 0)
+                    {
+                        candidateCountries = details.origin_country;
+                    }
+                    // 回退到 production_countries（电影常用）
+                    else if (details.production_countries?.Length > 0)
+                    {
+                        candidateCountries = details.production_countries
+                            .Select(pc => pc.iso_3166_1)
+                            .Where(c => !string.IsNullOrEmpty(c))
+                            .ToArray();
+                    }
+                
+                    if (candidateCountries?.Length > 0)
+                    {
+                        // 尝试找到一个国家，其映射语言与 original_language 一致（但 original_language 为空，所以直接取第一个）
+                        var firstCountry = candidateCountries[0];
+                        targetLanguage = LanguageMapper.GetLanguageForCountry(firstCountry);
+                    }
+                }
+                // 3. 兜底 "en"（已默认）
+
+//                // === 自动语言识别 ===
+//                string targetLanguage = "en";
+
+//                // 1. 优先 origin_country
+//                if (details?.origin_country?.Length > 0)
+//                {
+//                    var originCountry = details.origin_country[0];
+//                    targetLanguage = LanguageMapper.GetLanguageForCountry(originCountry);
+//                }
+//                // 2. 其次 original_language + production_countries 联合推断
+//                else if (!string.IsNullOrEmpty(details?.original_language) && details?.production_countries?.Length > 0)
+//                {
+//                    var originalLang = details.original_language;
+//                    // 尝试在 production_countries 中找匹配该语言的国家
+//                    var matchingCountry = details.production_countries
+//                        .FirstOrDefault(c => LanguageMapper.GetLanguageForCountry(c.iso_3166_1) == originalLang);
+//                
+//                    if (matchingCountry != null)
+//                    {
+//                        targetLanguage = originalLang; // 语言一致，可信
+//                    }
+//                    else
+//                    {
+//                        // 无匹配国家，仍使用 original_language（如 en 但国家是 JP，极少情况）
+//                        targetLanguage = originalLang;
+//                    }
+//                }
+//                // 3. 再次兜底 production_countries[0]
+//                else if (details?.production_countries?.Length > 0)
+//                {
+//                    var fallbackCountry = details.production_countries[0].iso_3166_1;
+//                    targetLanguage = LanguageMapper.GetLanguageForCountry(fallbackCountry);
+//                }
+//                // 4. 最终兜底 "en"
+
 
                 // 2. 获取该语言的海报
                 _logger?.Debug("[OriginalPoster] Fetching images for TMDB ID: {0}, language: {1}", imagesTmdbId, targetLanguage);
