@@ -161,7 +161,13 @@ namespace OriginalPoster.Providers
                         targetLanguage = LanguageMapper.GetLanguageForCountry(details.production_countries[0].iso_3166_1);
                     }
                 }
-
+                _logger?.Debug(
+                    "[OriginalPoster] Detected: original_language={0}, origin_country=[{1}], production_countries=[{2}] → targetLanguage={3}",
+                    details?.original_language,
+                    string.Join(",", details?.origin_country ?? Array.Empty<string>()),
+                    string.Join(",", details?.production_countries?.Select(p => p.iso_3166_1) ?? Array.Empty<string>()),
+                    targetLanguage);
+                    
 //                // === 自动语言识别 ===
 //                string targetLanguage = "en";
 //
@@ -231,15 +237,6 @@ namespace OriginalPoster.Providers
 
             return images;
         }
-
-//        private string GetTmdbId(BaseItem item)
-//        {
-//            if (item.ProviderIds?.TryGetValue(MetadataProviders.Tmdb.ToString(), out var id) == true)
-//            {
-//                return id;
-//            }
-//            return null;
-//        }
 
         private string GetTmdbId(BaseItem item)
         {
