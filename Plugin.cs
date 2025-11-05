@@ -40,7 +40,7 @@ namespace OriginalPoster
             // 你的命名空间是 "OriginalPoster"
             // 你在 .csproj 里嵌入的文件是 "logo.png"
             // 所以正确的资源名是 "OriginalPoster.logo.png"
-            string resourceName = "OriginalPoster.logo.png";
+            string resourceName = "OriginalPoster.OriginalPosterLogo.png";
             
             return assembly.GetManifestResourceStream(resourceName);
         }
