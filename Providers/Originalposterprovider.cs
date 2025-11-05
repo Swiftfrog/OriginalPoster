@@ -40,8 +40,6 @@ namespace OriginalPoster.Providers
 
         public bool Supports(BaseItem item)
         {
-//            var supported = item is Movie;
-//            var supported = item is Movie || item is Series; // ✅ 支持电影和剧集
             var supported = item is Movie || item is Series || item is Season;
             _logger.Debug("[OriginalPoster] Supports check for {0}: {1}", item.Name, supported);
             return supported;
@@ -93,7 +91,6 @@ namespace OriginalPoster.Providers
             }
             // === 第一阶段：测试模式 ===
 
-            // === 自动语言识别 ===
             var tmdbId = GetTmdbId(item);
             if (string.IsNullOrEmpty(tmdbId))
             {
@@ -111,7 +108,8 @@ namespace OriginalPoster.Providers
                 if (string.IsNullOrEmpty(imagesTmdbId))
                 {
                     _logger?.Debug("[OriginalPoster] No TMDB ID found for item, skipping");
-                    return images;
+                    //return images;
+                    return Enumerable.Empty<RemoteImageInfo>(); // 直接返回
                 }
 
                 string detailsTmdbId;
@@ -127,46 +125,83 @@ namespace OriginalPoster.Providers
                     // 电影或剧集：详情ID和图像ID是相同的
                     detailsTmdbId = imagesTmdbId;
                 }
-                // --- 修订结束 ---
-
+                // --- 关键修订：区分详情ID和图像ID ---
 
                 // 1. 获取项目详情以确定原产国
                 var details = await tmdbClient.GetItemDetailsAsync(detailsTmdbId, item is Movie, cancellationToken);
 
                 string targetLanguage = "en";
-
-                // 1. 优先 origin_country
-                if (details?.origin_country?.Length > 0)
-                {
-                    var originCountry = details.origin_country[0];
-                    targetLanguage = LanguageMapper.GetLanguageForCountry(originCountry);
-                }
-                // 2. 其次 original_language + production_countries 联合推断
-                else if (!string.IsNullOrEmpty(details?.original_language) && details?.production_countries?.Length > 0)
-                {
-                    var originalLang = details.original_language;
-                    // 尝试在 production_countries 中找匹配该语言的国家
-                    var matchingCountry = details.production_countries
-                        .FirstOrDefault(c => LanguageMapper.GetLanguageForCountry(c.iso_3166_1) == originalLang);
                 
-                    if (matchingCountry != null)
-                    {
-                        targetLanguage = originalLang; // 语言一致，可信
-                    }
-                    else
-                    {
-                        // 无匹配国家，仍使用 original_language（如 en 但国家是 JP，极少情况）
-                        targetLanguage = originalLang;
-                    }
-                }
-                // 3. 再次兜底 production_countries[0]
-                else if (details?.production_countries?.Length > 0)
+                if (details != null)
                 {
-                    var fallbackCountry = details.production_countries[0].iso_3166_1;
-                    targetLanguage = LanguageMapper.GetLanguageForCountry(fallbackCountry);
+                    string originalLang = details.original_language;
+                    if (originalLang == "cn") originalLang = "zh"; // 标准化
+                
+                    // ✅ 1. 先快速处理非中文（占大多数）
+                    if (!string.IsNullOrEmpty(originalLang) && originalLang != "zh")
+                    {
+                        targetLanguage = originalLang; // 直接返回，无需查 country
+                    }
+                    // ✅ 2. 再处理中文（少数情况）
+                    else if (originalLang == "zh" && details.origin_country?.Length > 0)
+                    {
+                        var zhPriority = new[] { "HK", "TW", "SG", "CN" };
+                        var primaryCountry = details.origin_country
+                            .FirstOrDefault(c => zhPriority.Contains(c)) 
+                            ?? details.origin_country[0];
+                        targetLanguage = LanguageMapper.GetLanguageForCountry(primaryCountry);
+                    }
+                    // ✅ 3. 最后处理无 original_language 的情况
+                    else if (details.origin_country?.Length > 0)
+                    {
+                        targetLanguage = LanguageMapper.GetLanguageForCountry(details.origin_country[0]);
+                    }
+                    else if (details.production_countries?.Length > 0)
+                    {
+                        targetLanguage = LanguageMapper.GetLanguageForCountry(details.production_countries[0].iso_3166_1);
+                    }
                 }
-                // 4. 最终兜底 "en"
-                // === 自动语言识别 ===
+                _logger?.Debug(
+                    "[OriginalPoster] Detected: original_language={0}, origin_country=[{1}], production_countries=[{2}] → targetLanguage={3}",
+                    details?.original_language,
+                    string.Join(",", details?.origin_country ?? Array.Empty<string>()),
+                    string.Join(",", details?.production_countries?.Select(p => p.iso_3166_1) ?? Array.Empty<string>()),
+                    targetLanguage);
+                    
+//                // === 自动语言识别 ===
+//                string targetLanguage = "en";
+//
+//                // 1. 优先 origin_country
+//                if (details?.origin_country?.Length > 0)
+//                {
+//                    var originCountry = details.origin_country[0];
+//                    targetLanguage = LanguageMapper.GetLanguageForCountry(originCountry);
+//                }
+//                // 2. 其次 original_language + production_countries 联合推断
+//                else if (!string.IsNullOrEmpty(details?.original_language) && details?.production_countries?.Length > 0)
+//                {
+//                    var originalLang = details.original_language;
+//                    // 尝试在 production_countries 中找匹配该语言的国家
+//                    var matchingCountry = details.production_countries
+//                        .FirstOrDefault(c => LanguageMapper.GetLanguageForCountry(c.iso_3166_1) == originalLang);
+//                
+//                    if (matchingCountry != null)
+//                    {
+//                        targetLanguage = originalLang; // 语言一致，可信
+//                    }
+//                    else
+//                    {
+//                        // 无匹配国家，仍使用 original_language（如 en 但国家是 JP，极少情况）
+//                        targetLanguage = originalLang;
+//                    }
+//                }
+//                // 3. 再次兜底 production_countries[0]
+//                else if (details?.production_countries?.Length > 0)
+//                {
+//                    var fallbackCountry = details.production_countries[0].iso_3166_1;
+//                    targetLanguage = LanguageMapper.GetLanguageForCountry(fallbackCountry);
+//                }
+//                // 4. 最终兜底 "en"
 
                 // 2. 获取该语言的海报
                 _logger?.Debug("[OriginalPoster] Fetching images for TMDB ID: {0}, language: {1}", imagesTmdbId, targetLanguage);
@@ -174,7 +209,7 @@ namespace OriginalPoster.Providers
 
                 var allImages = new List<RemoteImageInfo>();
 
-                // 添加海报
+                // 海报-movie, series, season
                 if (result.posters != null)
                 {
                     allImages.AddRange(ConvertToRemoteImageInfo(
@@ -182,7 +217,7 @@ namespace OriginalPoster.Providers
                         config.PosterSelectionStrategy, ImageType.Primary));
                 }
 
-                // 添加 Logo
+                // Logo
                 if (result.logos != null && config.EnableOriginalLogo)
                 {
                     allImages.AddRange(ConvertToRemoteImageInfo(
@@ -194,37 +229,14 @@ namespace OriginalPoster.Providers
                 
                 return allImages;
 
-//                if (imageType == ImageType.Primary)
-//                {
-//                    return ConvertToRemoteImageInfo(result.posters, targetLanguage, config.MetadataLanguage, config.PosterSelectionStrategy, ImageType.Primary);
-//                }
-//                else if (imageType == ImageType.Logo)
-//                {
-//                    return ConvertToRemoteImageInfo(result.logos, targetLanguage, config.MetadataLanguage, config.PosterSelectionStrategy, ImageType.Logo);
-//                }
-//            
-//                return Enumerable.Empty<RemoteImageInfo>();
-
-//                images = ConvertToRemoteImageInfo(result, targetLanguage, config.PosterSelectionStrategy);
-//                _logger?.Debug("[OriginalPoster] Fetched {0} images from TMDB", allImages.Count());
             }
             catch (Exception ex)
             {
-                //_logger?.Error(ex, "[OriginalPoster] Failed to fetch images from TMDB for {0}", item.Name);
                 _logger?.Error("[OriginalPoster] Failed to fetch images from TMDB for {0}. Error: {1}", item.Name, ex.Message);
             }
 
             return images;
         }
-
-//        private string GetTmdbId(BaseItem item)
-//        {
-//            if (item.ProviderIds?.TryGetValue(MetadataProviders.Tmdb.ToString(), out var id) == true)
-//            {
-//                return id;
-//            }
-//            return null;
-//        }
 
         private string GetTmdbId(BaseItem item)
         {
@@ -285,8 +297,7 @@ namespace OriginalPoster.Providers
 		    var result = sorted.Select(x => new RemoteImageInfo
 		    {
 		        ProviderName = Name,
-//		        Type = ImageType.Primary,
-		        Type = imageType, // ✅ 动态设置类型（Primary 或 Logo）
+		        Type = imageType, // 动态设置类型（Primary 或 Logo）
 		        Url = $"https://image.tmdb.org/t/p/original{x.Poster.file_path}",
 		        ThumbnailUrl = $"https://image.tmdb.org/t/p/w500{x.Poster.file_path}",
                 Language = string.IsNullOrEmpty(MetadataLanguage) 
@@ -350,17 +361,18 @@ namespace OriginalPoster.Providers
         
             double baseRating = poster.vote_average;
             string originalLang = poster.iso_639_1; // 内部直接读取
+            string targetLangBase = targetLanguage.Split('-')[0]; //提取 targetLanguage 的主语言部分（"zh-CN" → "zh"）
         
             switch (strategy)
             {
                 case PosterSelectionStrategy.OriginalLanguageFirst:
-                    if (originalLang == targetLanguage) return baseRating + 20;
+                    if (originalLang == targetLangBase) return baseRating + 20;
                     if (originalLang == null) return baseRating + 10;
                     return baseRating;
         
                 case PosterSelectionStrategy.NoTextPosterFirst:
                     if (originalLang == null) return baseRating + 20;
-                    if (originalLang == targetLanguage) return baseRating + 10;
+                    if (originalLang == targetLangBase) return baseRating + 10;
                     return baseRating;
         
                 case PosterSelectionStrategy.HighestRatingFirst:
@@ -371,7 +383,7 @@ namespace OriginalPoster.Providers
         
         private string GetDisplayLanguage(string langCode)
         {
-            // 1. 检查输入 (你的检查很好)
+            // 1. 检查输入
             if (string.IsNullOrWhiteSpace(langCode))
             {
                 return "Unknown";
@@ -385,24 +397,18 @@ namespace OriginalPoster.Providers
             }
             catch (CultureNotFoundException)
             {
-                 // （可选）在你的Emby插件日志中记录这个未知的代码
-                // Logger.LogWarning($"[MyPlugin] Found unknown language code from TMDB: {langCode}");
-                
                 return langCode.ToUpperInvariant();
             }
         }
 
         public IEnumerable<ImageType> GetSupportedImages(BaseItem item)
         {
-//            return new[] { ImageType.Primary };
-            return new[] { ImageType.Primary, ImageType.Logo }; // ✅ 添加 Logo
+            return new[] { ImageType.Primary, ImageType.Logo }; // Movie, Series, Season, Logo
         }
 
         public bool Supports(BaseItem item, ImageType imageType)
         {
-//            return imageType == ImageType.Primary && Supports(item);
-            return (imageType == ImageType.Primary || imageType == ImageType.Logo)
-                    && Supports(item);
+            return (imageType == ImageType.Primary || imageType == ImageType.Logo) && Supports(item);
         }
 
         public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken cancellationToken)
