@@ -1,6 +1,6 @@
-// Pluginconfiguration.cs
-using Emby.Web.GenericEdit;
+// OriginalPosterConfig.cs
 using MediaBrowser.Model.Plugins;
+using Emby.Web.GenericEdit;
 using System.ComponentModel;
 
 namespace OriginalPoster
