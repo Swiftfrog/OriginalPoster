@@ -17,7 +17,7 @@ namespace OriginalPoster
     {
         public override Guid Id => new Guid("2DE6B212-1C77-EFBC-8B95-A45F6DAE8921");
         
-        public override string Name => "Original Poster TMDB";
+        public override string Name => "OriginalPosterTMDB";
         
         public override string Description => "Automatically fetches movie posters in their original language from TMDB";
         
