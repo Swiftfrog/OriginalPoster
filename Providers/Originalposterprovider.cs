@@ -25,10 +25,10 @@ namespace OriginalPoster.Providers
     public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
     {
         private readonly IHttpClient _httpClient;
-        private readonly ILogger _logger;
+        private readonly ILogger? _logger;
         private readonly IJsonSerializer _jsonSerializer;
 
-        public string Name => "OriginalPosterTMDB";
+        public string Name => "OriginalPoster";
         public int Order => 0;
 
         public OriginalPosterProvider(IHttpClient httpClient, ILogger logger, IJsonSerializer jsonSerializer)
@@ -119,7 +119,16 @@ namespace OriginalPoster.Providers
                 if (item is Season)
                 {
                     // 播出季：详情ID是 Series ID (例如 "1396")
-                    detailsTmdbId = imagesTmdbId.Split('_')[0];
+                    // 修复 CS8602: 确保 imagesTmdbId 不为 null
+                    var parts = imagesTmdbId.Split('_');
+                    if (parts.Length == 0) // 如果 Split 后没有部分，无法获取 Series ID
+                    {
+                        _logger.Error("[OriginalPoster] Invalid Season TMDB ID format: {0}", imagesTmdbId);
+                        return Enumerable.Empty<RemoteImageInfo>();
+                    }
+                    detailsTmdbId = parts[0]; // 安全获取第一部分
+                    // 播出季：详情ID是 Series ID (例如 "1396")
+                    // detailsTmdbId = imagesTmdbId.Split('_')[0];
                 }
                 else
                 {
@@ -226,7 +235,7 @@ namespace OriginalPoster.Providers
             return images;
         }
 
-        private string GetTmdbId(BaseItem item)
+        private string? GetTmdbId(BaseItem item)
         {
             // 电影或剧集：直接从 ProviderIds 获取
             if (item is Movie || item is Series)
