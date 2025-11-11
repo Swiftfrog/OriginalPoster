@@ -8,10 +8,10 @@ namespace OriginalPoster.Models
     /// </summary>
     public class TmdbItemDetails
     {
-        public string id { get; set; }
-        public string original_language { get; set; }
-        public string[] origin_country { get; set; }
-        public ProductionCountry[] production_countries { get; set; }
+        public required string id { get; set; }
+        public required string original_language { get; set; }
+        public required string[] origin_country { get; set; }
+        public required ProductionCountry[] production_countries { get; set; }
     }
 
     /// <summary>
@@ -22,8 +22,8 @@ namespace OriginalPoster.Models
         /// <summary>
         /// ISO 3166-1 国家代码，如 "US", "CN"
         /// </summary>
-        public string iso_3166_1 { get; set; }
-        public string name { get; set; }
+        public required string iso_3166_1 { get; set; }
+        public required string name { get; set; }
     }
     
     /// <summary>
@@ -34,8 +34,8 @@ namespace OriginalPoster.Models
         /// <summary>
         /// 海报列表
         /// </summary>
-        public TmdbImage[] posters { get; set; }
-        public TmdbImage[] logos { get; set; }
+        public required TmdbImage[] posters { get; set; }
+        public required TmdbImage[] logos { get; set; }
     }
 
     /// <summary>
@@ -46,7 +46,7 @@ namespace OriginalPoster.Models
         /// <summary>
         /// 图像路径，如 "/abc123.jpg"
         /// </summary>
-        public string file_path { get; set; }
+        public required string file_path { get; set; }
 
         public int width { get; set; }
         public int height { get; set; }
@@ -54,9 +54,8 @@ namespace OriginalPoster.Models
         /// <summary>
         /// 图像语言代码（可能为 null，表示无文字）
         /// </summary>
-        public string iso_639_1 { get; set; }
+        public required string iso_639_1 { get; set; }
         public double vote_average { get; set; }
         public int vote_count { get; set; }
     }
-
 }
