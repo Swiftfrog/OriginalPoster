@@ -10,14 +10,12 @@ using System;
 
 namespace OriginalPoster;
 
-/// <summary>
 /// 插件主类 - 使用 BasePluginSimpleUI 自动生成配置界面
-/// </summary>
 public class Plugin : BasePluginSimpleUI<OriginalPosterConfig>, IHasThumbImage
 {
     public override Guid Id => new Guid("2DE6B212-1C77-EFBC-8B95-A45F6DAE8921");
     
-    public override string Name => "OriginalPosterTMDB";
+    public override string Name => "OriginalPoster";
     
     public override string Description => "Automatically fetches posters in their original language from TMDB";
     
@@ -36,8 +34,6 @@ public class Plugin : BasePluginSimpleUI<OriginalPosterConfig>, IHasThumbImage
     public Stream GetThumbImage()
     {
         var assembly = GetType().Assembly;
-        
-        // 所以正确的资源名是 "OriginalPoster.logo.png"
         string resourceName = "OriginalPoster.OriginalPosterLogo.webp";
         
         var stream = assembly.GetManifestResourceStream(resourceName);
