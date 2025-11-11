@@ -1,61 +1,60 @@
 // Models/TmdbModels.cs
 using System;
 
-namespace OriginalPoster.Models
+namespace OriginalPoster.Models;
+
+/// <summary>
+/// TMDB 项目详情（电影/剧集），用于获取 production_countries
+/// </summary>
+public class TmdbItemDetails
+{
+    public required string id { get; set; }
+    public required string original_language { get; set; }
+    public required string[] origin_country { get; set; }
+    public required ProductionCountry[] production_countries { get; set; }
+}
+
+/// <summary>
+/// 制片国家信息
+/// </summary>
+public class ProductionCountry
 {
     /// <summary>
-    /// TMDB 项目详情（电影/剧集），用于获取 production_countries
+    /// ISO 3166-1 国家代码，如 "US", "CN"
     /// </summary>
-    public class TmdbItemDetails
-    {
-        public required string id { get; set; }
-        public required string original_language { get; set; }
-        public required string[] origin_country { get; set; }
-        public required ProductionCountry[] production_countries { get; set; }
-    }
+    public required string iso_3166_1 { get; set; }
+    public required string name { get; set; }
+}
+
+/// <summary>
+/// TMDB 图像响应结果（/images 接口）
+/// </summary>
+public class TmdbImageResult
+{
+    /// <summary>
+    /// 海报列表
+    /// </summary>
+    public required TmdbImage[] posters { get; set; }
+    public required TmdbImage[] logos { get; set; }
+}
+
+/// <summary>
+/// 单张图像信息
+/// </summary>
+public class TmdbImage
+{
+    /// <summary>
+    /// 图像路径，如 "/abc123.jpg"
+    /// </summary>
+    public required string file_path { get; set; }
+
+    public int width { get; set; }
+    public int height { get; set; }
 
     /// <summary>
-    /// 制片国家信息
+    /// 图像语言代码（可能为 null，表示无文字）
     /// </summary>
-    public class ProductionCountry
-    {
-        /// <summary>
-        /// ISO 3166-1 国家代码，如 "US", "CN"
-        /// </summary>
-        public required string iso_3166_1 { get; set; }
-        public required string name { get; set; }
-    }
-    
-    /// <summary>
-    /// TMDB 图像响应结果（/images 接口）
-    /// </summary>
-    public class TmdbImageResult
-    {
-        /// <summary>
-        /// 海报列表
-        /// </summary>
-        public required TmdbImage[] posters { get; set; }
-        public required TmdbImage[] logos { get; set; }
-    }
-
-    /// <summary>
-    /// 单张图像信息
-    /// </summary>
-    public class TmdbImage
-    {
-        /// <summary>
-        /// 图像路径，如 "/abc123.jpg"
-        /// </summary>
-        public required string file_path { get; set; }
-
-        public int width { get; set; }
-        public int height { get; set; }
-
-        /// <summary>
-        /// 图像语言代码（可能为 null，表示无文字）
-        /// </summary>
-        public required string iso_639_1 { get; set; }
-        public double vote_average { get; set; }
-        public int vote_count { get; set; }
-    }
+    public required string iso_639_1 { get; set; }
+    public double vote_average { get; set; }
+    public int vote_count { get; set; }
 }

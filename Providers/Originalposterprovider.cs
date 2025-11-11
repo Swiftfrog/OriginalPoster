@@ -131,15 +131,7 @@ namespace OriginalPoster.Providers
 
                 if (item is Season)
                 {
-                    // // 播出季：详情ID是 Series ID (例如 "1396")
-                    // // 修复 CS8602: 确保 imagesTmdbId 不为 null
-                    // var parts = imagesTmdbId.Split('_');
-                    // if (parts.Length == 0) // 如果 Split 后没有部分，无法获取 Series ID
-                    // {
-                    //     _logger?.Error("[OriginalPoster] Invalid Season TMDB ID format: {0}", imagesTmdbId);
-                    //     return Enumerable.Empty<RemoteImageInfo>();
-                    // }
-                    // detailsTmdbId = parts[0]; // 安全获取第一部分
+                    // 播出季：详情ID是 Series ID (例如 "1396")
                     // 播出季：详情ID是 Series ID (例如 "1396")
                     detailsTmdbId = imagesTmdbId.Split('_')[0];
                 }
@@ -160,7 +152,7 @@ namespace OriginalPoster.Providers
                     string originalLang = details.original_language;
                     if (originalLang == "cn") originalLang = "zh"; // 标准化
                 
-                    // ✅ 只要 original_language 存在，就优先使用它,不区分中文CN，HK,TW和SG
+                    // 只要 original_language 存在，就优先使用它,不区分中文CN，HK,TW和SG
                     if (!string.IsNullOrEmpty(originalLang))
                     {
                         targetLanguage = originalLang;
@@ -330,6 +322,7 @@ namespace OriginalPoster.Providers
 		            i + 1, img.Url, img.Language, img.CommunityRating);
 		    }
 		    
+		    // 备用方案
 //            // 关键：如果配置了 MetadataLanguage 且不等于 targetLanguage，额外返回一张“伪装成元数据语言”的海报
 //            if (!string.IsNullOrEmpty(metadataLanguage) && 
 //                !string.Equals(metadataLanguage, targetLanguage, StringComparison.OrdinalIgnoreCase))
