@@ -42,7 +42,7 @@ namespace OriginalPoster.Providers
         public bool Supports(BaseItem item)
         {
             var supported = item is Movie || item is Series || item is Season;
-            _logger.Debug("[OriginalPoster] Supports check for {0}: {1}", item.Name, supported);
+            _logger.Debug("[OriginalPoster] Supports check for {0}: {1}", item.Name ?? "Unknown", supported);
             return supported;
         }
 
@@ -101,6 +101,12 @@ namespace OriginalPoster.Providers
 
             try
             {
+                // 检查TMDB API Key 不能为空
+                if (config.TmdbApiKey == null )
+                {
+                    _logger?.Debug("[OriginalPoster] Please fill in TMDB API KEY.");
+                    return Enumerable.Empty<RemoteImageInfo>();
+                }
                 var tmdbClient = new TmdbClient(_httpClient, _jsonSerializer, config.TmdbApiKey);
 
                 // 区分详情ID和图像ID ---

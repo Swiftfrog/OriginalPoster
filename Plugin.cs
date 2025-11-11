@@ -44,10 +44,9 @@ namespace OriginalPoster
             // 可以选择在此处添加日志，如果资源未找到
             if (stream == null)
             {
-                // 日志记录（如果 ILogger 可用）
-                // _logger?.LogError($"Could not find embedded resource: {resourceName}");
-                // 根据插件设计，可能需要返回一个默认流或抛出异常
-                // 当前选择返回 null，与 Stream? 类型一致
+                throw new InvalidOperationException(
+                    $"Failed to load embedded logo resource: '{resourceName}'. " +
+                    "Check that the file is included as <EmbeddedResource> in OriginalPoster.csproj.");
             }
             return stream;
         }
