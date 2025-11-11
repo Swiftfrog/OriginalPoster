@@ -22,7 +22,7 @@ namespace OriginalPoster
         public override string Description => "Automatically fetches posters in their original language from TMDB";
         
         // 插件实例（供其他类访问配置）
-        public static Plugin Instance { get; private set; }
+        public static Plugin? Instance { get; private set; }
         
         public OriginalPosterConfig Configuration => GetOptions();
         
@@ -40,7 +40,16 @@ namespace OriginalPoster
             // 所以正确的资源名是 "OriginalPoster.logo.png"
             string resourceName = "OriginalPoster.OriginalPosterLogo.webp";
             
-            return assembly.GetManifestResourceStream(resourceName);
+            var stream = assembly.GetManifestResourceStream(resourceName);
+            // 可以选择在此处添加日志，如果资源未找到
+            if (stream == null)
+            {
+                // 日志记录（如果 ILogger 可用）
+                // _logger?.LogError($"Could not find embedded resource: {resourceName}");
+                // 根据插件设计，可能需要返回一个默认流或抛出异常
+                // 当前选择返回 null，与 Stream? 类型一致
+            }
+            return stream;
         }
         public ImageFormat ThumbImageFormat => ImageFormat.Webp;
 
