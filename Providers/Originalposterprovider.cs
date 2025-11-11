@@ -131,17 +131,17 @@ namespace OriginalPoster.Providers
 
                 if (item is Season)
                 {
+                    // // 播出季：详情ID是 Series ID (例如 "1396")
+                    // // 修复 CS8602: 确保 imagesTmdbId 不为 null
+                    // var parts = imagesTmdbId.Split('_');
+                    // if (parts.Length == 0) // 如果 Split 后没有部分，无法获取 Series ID
+                    // {
+                    //     _logger?.Error("[OriginalPoster] Invalid Season TMDB ID format: {0}", imagesTmdbId);
+                    //     return Enumerable.Empty<RemoteImageInfo>();
+                    // }
+                    // detailsTmdbId = parts[0]; // 安全获取第一部分
                     // 播出季：详情ID是 Series ID (例如 "1396")
-                    // 修复 CS8602: 确保 imagesTmdbId 不为 null
-                    var parts = imagesTmdbId.Split('_');
-                    if (parts.Length == 0) // 如果 Split 后没有部分，无法获取 Series ID
-                    {
-                        _logger?.Error("[OriginalPoster] Invalid Season TMDB ID format: {0}", imagesTmdbId);
-                        return Enumerable.Empty<RemoteImageInfo>();
-                    }
-                    detailsTmdbId = parts[0]; // 安全获取第一部分
-                    // 播出季：详情ID是 Series ID (例如 "1396")
-                    // detailsTmdbId = imagesTmdbId.Split('_')[0];
+                    detailsTmdbId = imagesTmdbId.Split('_')[0];
                 }
                 else
                 {
