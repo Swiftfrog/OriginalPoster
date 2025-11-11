@@ -42,7 +42,7 @@ namespace OriginalPoster.Providers
         public bool Supports(BaseItem item)
         {
             var supported = item is Movie || item is Series || item is Season;
-            _logger.Debug("[OriginalPoster] Supports check for {0}: {1}", item.Name ?? "Unknown", supported);
+            _logger?.Debug("[OriginalPoster] Supports check for {0}: {1}", item.Name ?? "Unknown", supported);
             return supported;
         }
 
@@ -53,8 +53,15 @@ namespace OriginalPoster.Providers
         {
             var config = Plugin.Instance?.Configuration;
             
+            // 检查空配置
+            if (config == null)
+            {
+                _logger?.Debug("[OriginalPoster] Configuration not found. Plugin disabled.");
+                return Enumerable.Empty<RemoteImageInfo>();
+            }
+            
             // 全局开关：插件是否启用
-            if (config?.Enabled != true)
+            if (config.Enabled != true)
             {
                 _logger?.Debug("[OriginalPoster] Please Enable Plugin");
                 return Enumerable.Empty<RemoteImageInfo>();
@@ -65,7 +72,7 @@ namespace OriginalPoster.Providers
             var images = Enumerable.Empty<RemoteImageInfo>();
 
             /// 测试模式
-            if (config?.TestMode == true)
+            if (config.TestMode == true)
             {
                 _logger?.Debug("[OriginalPoster] Test mode enabled, returning test poster");
                 
@@ -129,7 +136,7 @@ namespace OriginalPoster.Providers
                     var parts = imagesTmdbId.Split('_');
                     if (parts.Length == 0) // 如果 Split 后没有部分，无法获取 Series ID
                     {
-                        _logger.Error("[OriginalPoster] Invalid Season TMDB ID format: {0}", imagesTmdbId);
+                        _logger?.Error("[OriginalPoster] Invalid Season TMDB ID format: {0}", imagesTmdbId);
                         return Enumerable.Empty<RemoteImageInfo>();
                     }
                     detailsTmdbId = parts[0]; // 安全获取第一部分
