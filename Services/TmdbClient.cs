@@ -1,10 +1,11 @@
 // Services/TmdbClient.cs
 using MediaBrowser.Common.Net;
 using MediaBrowser.Model.Serialization;
-using OriginalPoster.Models;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+
+using OriginalPoster.Models;
 
 namespace OriginalPoster.Services
 {
@@ -68,17 +69,12 @@ namespace OriginalPoster.Services
 
             string url;
 
-            // --- 关键修订：检查是否为播出季复合ID ---
             // 我们在 Provider 中定义的格式是 "SeriesId_S<SeasonNumber>" (例如 "1396_S1")
             // isMovie 此时为 false
             if (!isMovie && tmdbId.Contains("_S"))
             {
                 var parts = tmdbId.Split(new[] { "_S" }, StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length == 2 && !string.IsNullOrEmpty(parts[0]) && !string.IsNullOrEmpty(parts[1]))
-//                if (parts.Length == 2 && 
-//                    !string.IsNullOrEmpty(parts[0]) && 
-//                    !string.IsNullOrEmpty(parts[1]) &&
-//                    int.TryParse(parts[1], out _)) // ✅ 确保 seasonNumber 是有效数字
                 {
                     var seriesId = parts[0];
                     var seasonNumber = parts[1];
@@ -101,12 +97,6 @@ namespace OriginalPoster.Services
                       $"api_key={_apiKey}&" +
                       $"include_image_language={language},null";
             }
-            // --- 修订结束 ---
-
-//            var type = isMovie ? "movie" : "tv";
-//            var url = $"{BaseUrl}/{type}/{tmdbId}/images?" +
-//                      $"api_key={_apiKey}&" +
-//                      $"include_image_language={language},null";
 
             var options = new HttpRequestOptions
             {

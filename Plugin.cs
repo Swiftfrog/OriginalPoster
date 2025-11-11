@@ -19,12 +19,12 @@ namespace OriginalPoster
         
         public override string Name => "OriginalPosterTMDB";
         
-        public override string Description => "Automatically fetches movie posters in their original language from TMDB";
+        public override string Description => "Automatically fetches posters in their original language from TMDB";
         
         // 插件实例（供其他类访问配置）
         public static Plugin Instance { get; private set; }
         
-         public OriginalPosterConfig Configuration => GetOptions();
+        public OriginalPosterConfig Configuration => GetOptions();
         
         public Plugin(IApplicationHost applicationPaths)
             : base(applicationPaths)
@@ -37,8 +37,6 @@ namespace OriginalPoster
         {
             var assembly = GetType().Assembly;
             
-            // 你的命名空间是 "OriginalPoster"
-            // 你在 .csproj 里嵌入的文件是 "logo.png"
             // 所以正确的资源名是 "OriginalPoster.logo.png"
             string resourceName = "OriginalPoster.OriginalPosterLogo.webp";
             

@@ -10,14 +10,15 @@ using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Providers;
 using MediaBrowser.Model.Serialization;
-using OriginalPoster.Models;
-using OriginalPoster.Services;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+
+using OriginalPoster.Models;
+using OriginalPoster.Services;
 
 namespace OriginalPoster.Providers
 {
@@ -63,7 +64,7 @@ namespace OriginalPoster.Providers
 
             var images = Enumerable.Empty<RemoteImageInfo>();
 
-            // === 第一阶段：测试模式 ===
+            /// 测试模式
             if (config?.TestMode == true)
             {
                 _logger?.Debug("[OriginalPoster] Test mode enabled, returning test poster");
@@ -89,7 +90,7 @@ namespace OriginalPoster.Providers
                 _logger?.Debug("[OriginalPoster] Returning 1 test image");
                 return new[] { testImage };
             }
-            // === 第一阶段：测试模式 ===
+            /// 测试模式
 
             var tmdbId = GetTmdbId(item);
             if (string.IsNullOrEmpty(tmdbId))
@@ -102,7 +103,7 @@ namespace OriginalPoster.Providers
             {
                 var tmdbClient = new TmdbClient(_httpClient, _jsonSerializer, config.TmdbApiKey);
 
-                // --- 关键修订：区分详情ID和图像ID ---
+                // 区分详情ID和图像ID ---
                 // imagesTmdbId 可能是 "12345" (Movie), "1396" (Series), 或 "1396_S1" (Season)
                 var imagesTmdbId = GetTmdbId(item);
                 if (string.IsNullOrEmpty(imagesTmdbId))
@@ -190,7 +191,7 @@ namespace OriginalPoster.Providers
                     string.Join(",", details?.production_countries?.Select(p => p.iso_3166_1) ?? Array.Empty<string>()),
                     targetLanguage);
                     
-                // 2. 获取该语言的海报
+                // 获取该语言的海报
                 _logger?.Debug("[OriginalPoster] Fetching images for TMDB ID: {0}, language: {1}", imagesTmdbId, targetLanguage);
                 var result = await tmdbClient.GetImagesAsync(imagesTmdbId, item is Movie, targetLanguage, cancellationToken);
 
