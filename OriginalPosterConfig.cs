@@ -36,7 +36,7 @@ public class OriginalPosterConfig : EditableOptionsBase
     
     [DisplayName("元数据语言（用于兼容 Emby 语言偏好）")]
     [Description("设置为 Emby 媒体库的“首选元数据语言”，例如 zh、en。跟你的选的元数据语言一致。")]
-    public string MetadataLanguage { get; set; } = "zh"; // 直接写死为 "zh"
+    public string MetadataLanguage { get; set; } = "zh";
     
     [DisplayName("海报选择策略")]
     [Description("选择原语言海报时的优先级策略")]
