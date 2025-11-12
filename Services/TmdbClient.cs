@@ -86,7 +86,7 @@ public class TmdbClient
                 type = $"tv/{seriesId}/season/{seasonNumber}";
                 url = $"{BaseUrl}/{type}/images?" +
                       $"api_key={_apiKey}&" +
-                      $"include_image_language={language},null";
+                      $"language={language},null";
             }
             else
             {
@@ -97,7 +97,7 @@ public class TmdbClient
         {
             url = $"{BaseUrl}/{type}/images?" +
                   $"api_key={_apiKey}&" +
-                  $"include_image_language={language},null";
+                  $"language={language},null";
         }
 
         var options = new HttpRequestOptions
