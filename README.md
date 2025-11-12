@@ -1,5 +1,5 @@
 # Original Poster 原语言海报插件
-##Emby Plugin
+### **Emby Plugin**
 ### **自动获取电影/剧集原语言海报与 Logo**
 
 > ✅ **基于 Emby 4.9.1.x** | ✅ **支持 TMDB 原语言海报与 Logo**
