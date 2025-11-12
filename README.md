@@ -1,6 +1,8 @@
 # Original Poster
 > **Emby Plugin**
-### **自主获取TMDB的电影/剧集原语言海报与 Logo**
+### **自动获取TMDB的`电影`/`剧集` 原语言海报与`LOGO`**
+
+![OriginalPosterLogo](https://raw.githubusercontent.com/Swiftfrog/swiftfrog.github.io/master/OriginalPostLogo.png)
 
 ---
 
@@ -79,7 +81,7 @@
 - 插件自动识别剧集（Series）和播出季（Season），并从剧集获取原语言。
 
 ### ❓ 我能自定义语言映射吗？
-目前不支持，但插件内置完整映射表。如需扩展，可修改 `LanguageMapper.cs`。
+- 目前不支持，但插件内置完整映射表。如需扩展，可修改 `LanguageMapper.cs`。
 
 ### ❓ 插件会频繁调用 TMDB API 吗？
 不会。  
@@ -91,9 +93,8 @@
 
 - **开发语言**：C# (.NET 8)
 - **目标平台**：Emby Server 4.9.1.x
-- **依赖库**：仅 `MediaBrowser.Server.Core` (4.9.1.x)
+- **依赖库**：`MediaBrowser.Server.Core`
 - **调试建议**：
-  - 使用 `Plugin.Instance.Configuration` 访问配置
   - 日志路径：Emby → 设置 → 日志 → 搜索 `[OriginalPoster]`
   - 启用 `DebugLogging` 查看详细语言识别过程
 
