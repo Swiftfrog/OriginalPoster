@@ -222,24 +222,24 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
             _logger?.Debug("[OriginalPoster] Fetching images for TMDB ID: {0}, language: {1}", imagesTmdbId, targetLanguage);
             
             // 获取图像 - 根据项目类型选择正确的API端点
-            string imageType;
+            string imageTypes;
             string finalTmdbId = imagesTmdbId;
             
             if (item is Season)
             {
-                imageType = "tv_season";
+                imageTypes = "tv_season";
                 finalTmdbId = imagesTmdbId; // 保持 "1396_S1" 格式
             }
             else if (item is BoxSet)
             {
-                imageType = "collection";
+                imageTypes = "collection";
             }
             else
             {
-                imageType = isMovie ? "movie" : "tv";
+                imageTypes = isMovie ? "movie" : "tv";
             }
             
-            var result = await tmdbClient.GetImagesAsync(imagesTmdbId, imageType, targetLanguage, cancellationToken);
+            var result = await tmdbClient.GetImagesAsync(imagesTmdbId, imageTypes, targetLanguage, cancellationToken);
 
             var allImages = new List<RemoteImageInfo>();
 
