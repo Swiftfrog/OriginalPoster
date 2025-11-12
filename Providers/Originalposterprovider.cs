@@ -41,7 +41,7 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
 
     public bool Supports(BaseItem item)
     {
-        var supported = item is Movie || item is Series || item is Season;
+        var supported = item is Movie || item is Series || item is Season|| item is BoxSet; // add Boxset
         _logger?.Debug("[OriginalPoster] Supports check for {0}: {1}", item.Name ?? "Unknown", supported);
         return supported;
     }
@@ -141,7 +141,22 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
             }
 
             // 1. 获取项目详情以确定原产国
-            var details = await tmdbClient.GetItemDetailsAsync(detailsTmdbId, item is Movie, cancellationToken);
+
+            string detailsType;
+            if (item is BoxSet)
+            {
+                detailsType = "collection";
+            }
+            else if (item is Season)
+            {
+                detailsType = "tv";
+            }
+            else
+            {
+                detailsType = isMovie ? "movie" : "tv";
+            }
+
+            var details = await tmdbClient.GetItemDetailsAsync(detailsTmdbId, detailsType, cancellationToken);
 
             string targetLanguage = "en";
             
@@ -205,7 +220,26 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
                 
             // 获取该语言的海报
             _logger?.Debug("[OriginalPoster] Fetching images for TMDB ID: {0}, language: {1}", imagesTmdbId, targetLanguage);
-            var result = await tmdbClient.GetImagesAsync(imagesTmdbId, item is Movie, targetLanguage, cancellationToken);
+            
+            // 获取图像 - 根据项目类型选择正确的API端点
+            string imageType;
+            string finalTmdbId = imagesTmdbId;
+            
+            if (item is Season)
+            {
+                imageType = "tv_season";
+                finalTmdbId = imagesTmdbId; // 保持 "1396_S1" 格式
+            }
+            else if (item is BoxSet)
+            {
+                imageType = "collection";
+            }
+            else
+            {
+                imageType = isMovie ? "movie" : "tv";
+            }
+            
+            var result = await tmdbClient.GetImagesAsync(imagesTmdbId, imageType, targetLanguage, cancellationToken);
 
             var allImages = new List<RemoteImageInfo>();
 
@@ -245,6 +279,7 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
         {
             if (item.ProviderIds?.TryGetValue(MetadataProviders.Tmdb.ToString(), out var id) == true)
             {
+                _logger?.Debug("[OriginalPoster] TMDB ID: {0}", id);
                 return id;
             }
         }
@@ -256,6 +291,15 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
             {
                 // 返回组合 ID，如 "1396_S1"
                 return $"{seriesTmdbId}_S{season.IndexNumber}";
+            }
+        }
+        // BoxSet：直接从 ProviderIds 获取
+        else if (item is BoxSet boxSet)
+        {
+            if (item.ProviderIds?.TryGetValue(MetadataProviders.Tmdb.ToString(), out var id) == true)
+            {
+                _logger?.Debug("[OriginalPoster] BoxSet TMDB ID: {0}", id);
+                return id;
             }
         }
         return null;

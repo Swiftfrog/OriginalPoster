@@ -32,13 +32,16 @@ public class TmdbClient
     /// </summary>
     public async Task<TmdbItemDetails> GetItemDetailsAsync(
         string tmdbId,
-        bool isMovie,
+        string type, // "movie", "tv", "collection"
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(tmdbId))
             throw new ArgumentException("TMDB ID cannot be null or empty.", nameof(tmdbId));
+        
+        if (string.IsNullOrWhiteSpace(type))
+            throw new ArgumentException("Type cannot be null or empty.", nameof(type));
 
-        var type = isMovie ? "movie" : "tv";
+        // var type = isMovie ? "movie" : "tv";
         var url = $"{BaseUrl}/{type}/{tmdbId}?api_key={_apiKey}";
 
         var options = new HttpRequestOptions
@@ -60,27 +63,28 @@ public class TmdbClient
     /// </summary>
     public async Task<TmdbImageResult> GetImagesAsync(
         string tmdbId,
-        bool isMovie,
+        string type, // "movie", "tv", "collection", "tv/{seriesId}/season/{seasonNumber}"
         string language,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(tmdbId))
             throw new ArgumentException("TMDB ID cannot be null or empty.", nameof(tmdbId));
 
+        if (string.IsNullOrWhiteSpace(type))
+            throw new ArgumentException("Type cannot be null or empty.", nameof(type));
+
         string url;
 
-        // 我们在 Provider 中定义的格式是 "SeriesId_S<SeasonNumber>" (例如 "1396_S1")
-        // isMovie 此时为 false
-        if (!isMovie && tmdbId.Contains("_S"))
+        // 处理播出季格式 "SeriesId_S<SeasonNumber>" -> "tv/{seriesId}/season/{seasonNumber}"
+        if (type == "tv_season")
         {
             var parts = tmdbId.Split(new[] { "_S" }, StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length == 2 && !string.IsNullOrEmpty(parts[0]) && !string.IsNullOrEmpty(parts[1]))
             {
                 var seriesId = parts[0];
                 var seasonNumber = parts[1];
-                
-                // 构建正确的播出季图像 URL
-                url = $"{BaseUrl}/tv/{seriesId}/season/{seasonNumber}/images?" +
+                type = $"tv/{seriesId}/season/{seasonNumber}";
+                url = $"{BaseUrl}/{type}/images?" +
                       $"api_key={_apiKey}&" +
                       $"include_image_language={language},null";
             }
@@ -91,9 +95,7 @@ public class TmdbClient
         }
         else
         {
-            // 传统逻辑：电影 或 剧集
-            var type = isMovie ? "movie" : "tv";
-            url = $"{BaseUrl}/{type}/{tmdbId}/images?" +
+            url = $"{BaseUrl}/{type}/images?" +
                   $"api_key={_apiKey}&" +
                   $"include_image_language={language},null";
         }

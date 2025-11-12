@@ -4,14 +4,26 @@ using System;
 namespace OriginalPoster.Models;
 
 /// <summary>
-/// TMDB 项目详情（电影/剧集），用于获取 production_countries
+/// TMDB 项目详情（电影/剧集/合集），用于获取 production_countries 或原语言信息
 /// </summary>
 public class TmdbItemDetails
 {
-    public required string id { get; set; }
-    public required string original_language { get; set; }
-    public required string[] origin_country { get; set; }
-    public required ProductionCountry[] production_countries { get; set; }
+    public int? id { get; set; }
+    
+    // 电影/剧集的原语言
+    public string? original_language { get; set; }
+    
+    // 电影/剧集的原产国家（主要用于剧集）
+    public string[]? origin_country { get; set; }
+    
+    // 电影的制片国家
+    public ProductionCountry[]? production_countries { get; set; }
+    
+    // Collection特有的字段
+    public string? name { get; set; }
+    public string? original_name { get; set; }
+    public string? poster_path { get; set; }
+    public string? backdrop_path { get; set; }
 }
 
 /// <summary>
@@ -22,8 +34,8 @@ public class ProductionCountry
     /// <summary>
     /// ISO 3166-1 国家代码，如 "US", "CN"
     /// </summary>
-    public required string iso_3166_1 { get; set; }
-    public required string name { get; set; }
+    public string? iso_3166_1 { get; set; }
+    public string? name { get; set; }
 }
 
 /// <summary>
@@ -34,8 +46,9 @@ public class TmdbImageResult
     /// <summary>
     /// 海报列表
     /// </summary>
-    public required TmdbImage[] posters { get; set; }
-    public required TmdbImage[] logos { get; set; }
+    public TmdbImage[]? posters { get; set; }
+    public TmdbImage[]? logos { get; set; }
+    public TmdbImage[]? backdrops { get; set; } // 虽然我们不使用，但API会返回
 }
 
 /// <summary>
@@ -46,15 +59,15 @@ public class TmdbImage
     /// <summary>
     /// 图像路径，如 "/abc123.jpg"
     /// </summary>
-    public required string file_path { get; set; }
+    public string? file_path { get; set; }
 
-    public int width { get; set; }
-    public int height { get; set; }
+    public int? width { get; set; }
+    public int? height { get; set; }
 
     /// <summary>
     /// 图像语言代码（可能为 null，表示无文字）
     /// </summary>
-    public required string iso_639_1 { get; set; }
-    public double vote_average { get; set; }
-    public int vote_count { get; set; }
+    public string? iso_639_1 { get; set; }
+    public double? vote_average { get; set; }
+    public int? vote_count { get; set; }
 }
