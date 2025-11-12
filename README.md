@@ -1,4 +1,4 @@
-# Original Poster 原语言海报插件
+# Original Poster
 ### **Emby Plugin**
 ### **自动获取电影/剧集原语言海报与 Logo**
 
@@ -18,7 +18,7 @@
 
 ---
 
-## ✅ 功能亮点
+## 功能
 
 | 功能 | 说明 |
 |------|------|
@@ -36,7 +36,7 @@
 ## 📥 安装步骤
 
 ### 1. 获取 TMDB API Key
-- 访问 [https://www.themoviedb.org/settings/api](https://www.themoviedb.org/settings/api)
+- 访问 [TMDB API](https://www.themoviedb.org/settings/api)
 - 登录后创建一个 **API Key（v3 auth）**
 - 保存 `API Key`（如 `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`）
 
@@ -58,7 +58,7 @@ copy OriginalPoster.dll "%AppData%\Emby-Server\programdata\plugins\"
 cp OriginalPoster.dll /var/lib/emby/plugins/
 # 或映射到容器的 plugins 目录
 ```
-
+``
 ### 4. 重启 Emby 服务器
 - 在 Emby 管理后台 → **“插件”** → 等待插件加载
 - 成功后会显示：**“OrigianlPoster”**
@@ -116,7 +116,7 @@ cp OriginalPoster.dll /var/lib/emby/plugins/
 6. **语言伪装**：将返回的 `Language` 字段统一设为用户设置的 `MetadataLanguage`（如 `zh`），提高 Emby 采纳率
 7. **返回图像**：Emby 自动下载并缓存最佳海报
 
-> ✅ **完全兼容 Emby 4.9.1.x API**，无任何非官方调用。
+> **完全基于 Emby 4.9.1.x API**，无任何非官方调用。
 
 ---
 
