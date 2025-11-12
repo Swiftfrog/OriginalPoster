@@ -83,8 +83,8 @@ public class TmdbClient
             {
                 var seriesId = parts[0];
                 var seasonNumber = parts[1];
-                type = $"tv/{seriesId}/season/{seasonNumber}";
-                url = $"{BaseUrl}/{type}/images?" +
+                seasonPath = $"tv/{seriesId}/season/{seasonNumber}";
+                url = $"{BaseUrl}/{seasonPath}/images?" +
                       $"api_key={_apiKey}&" +
                       $"language={language},null";
             }
@@ -95,7 +95,7 @@ public class TmdbClient
         }
         else
         {
-            url = $"{BaseUrl}/{type}/images?" +
+            url = $"{BaseUrl}/{type}/{tmdbId}/images?" +
                   $"api_key={_apiKey}&" +
                   $"language={language},null";
         }
