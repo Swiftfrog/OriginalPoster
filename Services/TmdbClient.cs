@@ -83,7 +83,7 @@ public class TmdbClient
             {
                 var seriesId = parts[0];
                 var seasonNumber = parts[1];
-                seasonPath = $"tv/{seriesId}/season/{seasonNumber}";
+                var seasonPath = $"tv/{seriesId}/season/{seasonNumber}";
                 url = $"{BaseUrl}/{seasonPath}/images?" +
                       $"api_key={_apiKey}&" +
                       $"language={language},null";
