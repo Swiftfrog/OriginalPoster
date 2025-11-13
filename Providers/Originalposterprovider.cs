@@ -76,8 +76,8 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
         {
             _logger?.Debug("[OriginalPoster] Test mode enabled, returning test poster");
             
-            string testlangCode = !string.IsNullOrWhiteSpace(config.MetadataLanguage) 
-                ? config.MetadataLanguage.Trim() // 顺便 Trim 一下
+            string testlangCode = !string.IsNullOrWhiteSpace(libraryOptions.PreferredMetadataLanguage) 
+                ? libraryOptions.PreferredMetadataLanguage.Trim() // 顺便 Trim 一下
                 : "en";
             
             var testImage = new RemoteImageInfo
@@ -234,7 +234,7 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
             if (result.posters != null)
             {
                 allImages.AddRange(ConvertToRemoteImageInfo(
-                    result.posters, targetLanguage, config.MetadataLanguage, 
+                    result.posters, targetLanguage, libraryOptions, 
                     config.PosterSelectionStrategy, ImageType.Primary));
             }
 
@@ -242,7 +242,7 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
             if (result.logos != null && config.EnableOriginalLogo)
             {
                 allImages.AddRange(ConvertToRemoteImageInfo(
-                    result.logos, targetLanguage, config.MetadataLanguage, 
+                    result.logos, targetLanguage, libraryOptions, 
                     config.PosterSelectionStrategy, ImageType.Logo));
             }
             
@@ -290,7 +290,8 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
 	private IEnumerable<RemoteImageInfo> ConvertToRemoteImageInfo(
 	    TmdbImage[] images,
 	    string targetLanguage,
-	    string MetadataLanguage,
+	    // string MetadataLanguage,
+	    LibraryOptions libraryOptions, // ✅ 新增参数
 	    PosterSelectionStrategy strategy,
 	    ImageType imageType)
 	{
@@ -325,9 +326,12 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
 	        Type = imageType, // 动态设置类型（Primary 或 Logo）
 	        Url = $"https://image.tmdb.org/t/p/original{x.Poster.file_path}",
 	        ThumbnailUrl = $"https://image.tmdb.org/t/p/w500{x.Poster.file_path}",
-            Language = string.IsNullOrEmpty(MetadataLanguage) 
-                ? x.DisplayLang 
-                : MetadataLanguage, // 强制使用元数据语言
+            // Language = string.IsNullOrEmpty(MetadataLanguage) 
+            //     ? x.DisplayLang 
+            //     : MetadataLanguage, // 强制使用元数据语言
+            Language = !string.IsNullOrEmpty(libraryOptions.PreferredMetadataLanguage)
+                ? libraryOptions.PreferredMetadataLanguage
+                : x.DisplayLang, // ✅ 优先使用库语言，否则用原语言
 	        DisplayLanguage = GetDisplayLanguage(x.DisplayLang),
 	        Width = x.Poster.width,
 	        Height = x.Poster.height,
