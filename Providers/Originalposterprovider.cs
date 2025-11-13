@@ -109,11 +109,12 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
         try
         {
             // 检查TMDB API Key 不能为空
-            if (config.TmdbApiKey == null )
+            if (string.IsNullOrEmpty(config.TmdbApiKey))
             {
                 _logger?.Debug("[OriginalPoster] Please fill in TMDB API KEY.");
                 return Enumerable.Empty<RemoteImageInfo>();
             }
+            
             var tmdbClient = new TmdbClient(_httpClient, _jsonSerializer, config.TmdbApiKey);
 
             // 区分详情ID和图像ID
@@ -344,33 +345,6 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
 	            i + 1, img.Url, img.Language, img.CommunityRating);
 	    }
 	    
-	    // 备用方案
-//            // 关键：如果配置了 MetadataLanguage 且不等于 targetLanguage，额外返回一张“伪装成元数据语言”的海报
-//            if (!string.IsNullOrEmpty(metadataLanguage) && 
-//                !string.Equals(metadataLanguage, targetLanguage, StringComparison.OrdinalIgnoreCase))
-//            {
-//                // 克隆最高评分的原语言海报，但 Language 设为 metadataLanguage
-//                var topImage = result.FirstOrDefault();
-//                if (topImage != null)
-//                {
-//                    var compatibleImage = new RemoteImageInfo
-//                    {
-//                        ProviderName = Name,
-//                        Type = ImageType.Primary,
-//                        Url = topImage.Url,
-//                        ThumbnailUrl = topImage.ThumbnailUrl,
-//                        Language = metadataLanguage, // 伪装成用户设置的语言
-//                        DisplayLanguage = GetDisplayLanguage(metadataLanguage),
-//                        Width = topImage.Width,
-//                        Height = topImage.Height,
-//                        CommunityRating = topImage.CommunityRating + 5, // 略高一点确保被选
-//                        VoteCount = topImage.VoteCount,
-//                        RatingType = RatingType.Score
-//                    };
-//                    result.Insert(0, compatibleImage); // 插入最前面
-//                }
-//            }
-	
 	    return result;
 	}
 
@@ -408,7 +382,7 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
     
     private string GetDisplayLanguage(string langCode)
     {
-        // 1. 检查输入
+        // 检查输入
         if (string.IsNullOrWhiteSpace(langCode))
         {
             return "Unknown";
@@ -416,7 +390,7 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
     
         try
         {
-            // 2. 尝试直接构造 (这已经处理了 "en", "ja", "zh" 等所有情况)
+            // 尝试直接构造 (这已经处理了 "en", "ja", "zh" 等所有情况)
             CultureInfo ci = new CultureInfo(langCode);
             return ci.EnglishName;
         }
@@ -438,8 +412,7 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
 
     public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken cancellationToken)
     {
-        // 记录 Emby 实际请求的图片（即最终选中的）
-        _logger?.Info("[OriginalPoster] Emby selected image for download: {0}", url);
+        _logger?.Info("[OriginalPoster] Emby selected image for download: {0}", url);    // 记录 Emby 实际请求的图片（即最终选中的）
         
         return _httpClient.GetResponse(new HttpRequestOptions
         {
