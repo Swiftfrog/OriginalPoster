@@ -12,7 +12,7 @@ public class TmdbItemDetails
     public required string original_language { get; set; }
     public required string[] origin_country { get; set; }
     public required ProductionCountry[] production_countries { get; set; }
-    // Collection特有的字段
+
     public required string name { get; set; }
     public required string original_name { get; set; }
     public required string poster_path { get; set; }

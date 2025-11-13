@@ -41,7 +41,6 @@ public class TmdbClient
         if (string.IsNullOrWhiteSpace(type))
             throw new ArgumentException("Type cannot be null or empty.", nameof(type));
 
-        // var type = isMovie ? "movie" : "tv";
         var url = $"{BaseUrl}/{type}/{tmdbId}?api_key={_apiKey}";
 
         var options = new HttpRequestOptions

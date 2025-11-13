@@ -41,7 +41,7 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
 
     public bool Supports(BaseItem item)
     {
-        var supported = item is Movie || item is Series || item is Season|| item is BoxSet; // add Boxset
+        var supported = item is Movie || item is Series || item is Season|| item is BoxSet;
         _logger?.Debug("[OriginalPoster] Supports check for {0}: {1}", item.Name ?? "Unknown", supported);
         return supported;
     }
@@ -122,13 +122,11 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
             if (string.IsNullOrEmpty(imagesTmdbId))
             {
                 _logger?.Debug("[OriginalPoster] No TMDB ID found for item, skipping");
-                //return images;
                 return Enumerable.Empty<RemoteImageInfo>(); // 直接返回
             }
 
             string detailsTmdbId;
             bool isMovie = item is Movie; // Movie=true, Series=false, Season=false
-
             if (item is Season)
             {
                 // 播出季：详情ID是 Series ID (例如 "1396")
@@ -139,26 +137,19 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
                 // 电影或剧集：详情ID和图像ID是相同的
                 detailsTmdbId = imagesTmdbId;
             }
-
-            // 1. 获取项目详情以确定原产国
-
-            string detailsType;
-            if (item is BoxSet)
+            
+            string detailsType = item switch    // 把emby的item属性专为TMDB的属性
             {
-                detailsType = "collection";
-            }
-            else if (item is Season)
-            {
-                detailsType = "tv";
-            }
-            else
-            {
-                detailsType = isMovie ? "movie" : "tv";
-            }
+                Movie => "movie",
+                Series => "tv",
+                Season => "tv", 
+                BoxSet => "collection",
+                _ => "movie" // 对于其他未知类型，默认使用movie API（相对更通用）
+            };
 
             var details = await tmdbClient.GetItemDetailsAsync(detailsTmdbId, detailsType, cancellationToken);
 
-            string targetLanguage = "en";
+            string targetLanguage = "en";    //设置fallback为en
             
             if (details != null)
             {
