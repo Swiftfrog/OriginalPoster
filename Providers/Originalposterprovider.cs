@@ -126,7 +126,7 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
             }
 
             string detailsTmdbId;
-            bool isMovie = item is Movie; // Movie=true, Series=false, Season=false
+            // bool isMovie = item is Movie; // Movie=true, Series=false, Season=false
             if (item is Season)
             {
                 // 播出季：详情ID是 Series ID (例如 "1396")
@@ -138,7 +138,7 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
                 detailsTmdbId = imagesTmdbId;
             }
             
-            string detailsType = item switch    // 把emby的item属性专为TMDB的属性
+            string detailsType = item switch    // 把emby的item属性转为TMDB的属性
             {
                 Movie => "movie",
                 Series => "tv",
@@ -213,24 +213,19 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
             _logger?.Debug("[OriginalPoster] Fetching images for TMDB ID: {0}, language: {1}", imagesTmdbId, targetLanguage);
             
             // 获取图像 - 根据项目类型选择正确的API端点
-            string imageTypes;
-            string finalTmdbId = imagesTmdbId;
+            // string imagesType;
+            // string finalTmdbId = imagesTmdbId;
+
+            string imagesType = item switch
+            {
+                Movie => "movie",
+                Series => "tv",
+                Season => "tv_season", 
+                BoxSet => "collection",
+                _ => "tv" // 对于其他未知类型，默认使用TV API
+            };
             
-            if (item is Season)
-            {
-                imageTypes = "tv_season";
-                finalTmdbId = imagesTmdbId; // 保持 "1396_S1" 格式
-            }
-            else if (item is BoxSet)
-            {
-                imageTypes = "collection";
-            }
-            else
-            {
-                imageTypes = isMovie ? "movie" : "tv";
-            }
-            
-            var result = await tmdbClient.GetImagesAsync(imagesTmdbId, imageTypes, targetLanguage, cancellationToken);
+            var result = await tmdbClient.GetImagesAsync(imagesTmdbId, imagesType, targetLanguage, cancellationToken);
 
             var allImages = new List<RemoteImageInfo>();
 
