@@ -265,8 +265,8 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
 
     private string? GetTmdbId(BaseItem item)
     {
-        // 电影或剧集：直接从 ProviderIds 获取
-        if (item is Movie || item is Series)
+        // 电影、剧集或合集：直接从 ProviderIds 获取
+        if (item is Movie || item is Series || item is BoxSet)
         {
             if (item.ProviderIds?.TryGetValue(MetadataProviders.Tmdb.ToString(), out var id) == true)
             {
@@ -280,19 +280,13 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
             var series = season.Series;
             if (series?.ProviderIds?.TryGetValue(MetadataProviders.Tmdb.ToString(), out var seriesTmdbId) == true)
             {
+                var seasonId = $"{seriesTmdbId}_S{season.IndexNumber}";
+                _logger?.Debug("[OriginalPoster] Season composite TMDB ID: {0}", seasonId);
                 // 返回组合 ID，如 "1396_S1"
-                return $"{seriesTmdbId}_S{season.IndexNumber}";
+                return seasonId;
             }
         }
-        // BoxSet：直接从 ProviderIds 获取
-        else if (item is BoxSet boxSet)
-        {
-            if (item.ProviderIds?.TryGetValue(MetadataProviders.Tmdb.ToString(), out var id) == true)
-            {
-                _logger?.Debug("[OriginalPoster] BoxSet TMDB ID: {0}", id);
-                return id;
-            }
-        }
+    
         return null;
     }
 
