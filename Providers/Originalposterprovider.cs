@@ -122,6 +122,14 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
             // imagesTmdbId 可能是 "12345" (Movie), "1396" (Series), 或 "1396_S1" (Season)
             var imagesTmdbId = GetTmdbId(item);
 
+            if (string.IsNullOrEmpty(imagesTmdbId))
+            {
+                _logger?.Debug("[OriginalPoster] No TMDB ID found for item, skipping");
+                return Enumerable.Empty<RemoteImageInfo>(); // 直接返回
+            }
+
+            _logger?.Debug("[OriginalPoster] TMDB ID: {0}", id);
+
             string detailsTmdbId;
             // bool isMovie = item is Movie; // Movie=true, Series=false, Season=false
             if (item is Season)
@@ -259,7 +267,6 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
         {
             if (item.ProviderIds?.TryGetValue(MetadataProviders.Tmdb.ToString(), out var id) == true)
             {
-                _logger?.Debug("[OriginalPoster] TMDB ID: {0}", id);
                 return id;
             }
         }
