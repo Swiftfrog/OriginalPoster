@@ -121,11 +121,6 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
             // 区分详情ID和图像ID
             // imagesTmdbId 可能是 "12345" (Movie), "1396" (Series), 或 "1396_S1" (Season)
             var imagesTmdbId = GetTmdbId(item);
-            if (string.IsNullOrEmpty(imagesTmdbId))
-            {
-                _logger?.Debug("[OriginalPoster] No TMDB ID found for item, skipping");
-                return Enumerable.Empty<RemoteImageInfo>(); // 直接返回
-            }
 
             string detailsTmdbId;
             // bool isMovie = item is Movie; // Movie=true, Series=false, Season=false
