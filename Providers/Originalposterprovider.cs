@@ -128,8 +128,6 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
                 return Enumerable.Empty<RemoteImageInfo>(); // 直接返回
             }
 
-            _logger?.Debug("[OriginalPoster] TMDB ID: {0}", imagesTmdbId);
-
             string detailsTmdbId;
             // bool isMovie = item is Movie; // Movie=true, Series=false, Season=false
             if (item is Season)
@@ -267,6 +265,7 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
         {
             if (item.ProviderIds?.TryGetValue(MetadataProviders.Tmdb.ToString(), out var id) == true)
             {
+                _logger?.Debug("[OriginalPoster] TMDB ID: {0}", id);
                 return id;
             }
         }
