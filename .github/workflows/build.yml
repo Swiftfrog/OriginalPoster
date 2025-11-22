@@ -2,7 +2,7 @@ name: Build OriginalPoster Plugin
 
 on:
   push:
-    branches: [ "d*" ]
+    branches: [ "d*", "main" ]
     tags: [ "v*" ]
   pull_request:
     branches: [ "main" ]
