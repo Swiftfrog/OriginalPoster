@@ -181,7 +181,8 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
                     
                     // UpdateItem 会持久化更改到数据库
                     // ItemUpdateType.MetadataImport 告诉 Emby 这是元数据变更
-                    _libraryManager.UpdateItem(item, item, ItemUpdateType.MetadataImport, cancellationToken);
+                    _libraryManager.UpdateItem(item, item.Parent, ItemUpdateType.MetadataImport);
+                    // _libraryManager.UpdateItem(item, item, ItemUpdateType.MetadataImport, cancellationToken);
                 }
             }
             // ==================== 新增：写入 Tags 逻辑结束 ====================
