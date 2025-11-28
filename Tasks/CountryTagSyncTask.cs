@@ -71,7 +71,7 @@ public class CountryTagSyncTask : IScheduledTask
         };
         
         var items = _libraryManager.GetItemList(query);
-        int totalCount = items.Count;
+        int totalCount = items.Length;
         int processedCount = 0;
         int updatedCount = 0;
 
@@ -87,7 +87,7 @@ public class CountryTagSyncTask : IScheduledTask
             var tmdbId = item.ProviderIds.GetValueOrDefault(MetadataProviders.Tmdb.ToString());
             if (string.IsNullOrEmpty(tmdbId)) continue;
 
-            string type = item switch
+            string? type = item switch
             {
                 Movie => "movie",
                 Series => "tv",
