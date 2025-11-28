@@ -3,6 +3,7 @@ using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
+using MediaBrowser.Controller.Library; // 必须添加这一行，用于调用 UpdateItem
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Dto;
@@ -27,15 +28,17 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
     private readonly IHttpClient _httpClient;
     private readonly ILogger? _logger;
     private readonly IJsonSerializer _jsonSerializer;
+    private readonly ILibraryManager _libraryManager; // <--- 新增字段
 
     public string Name => "OriginalPoster";
     public int Order => 0;
 
-    public OriginalPosterProvider(IHttpClient httpClient, ILogger logger, IJsonSerializer jsonSerializer)
+    public OriginalPosterProvider(IHttpClient httpClient, ILogger logger, IJsonSerializer jsonSerializer, ILibraryManager libraryManager)
     {
         _httpClient = httpClient;
         _logger = logger;
         _jsonSerializer = jsonSerializer;
+        _libraryManager = libraryManager;
         _logger?.Info("[OriginalPoster] Provider initialized with JsonSerializer");
     }
 
@@ -151,6 +154,37 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
             };
 
             var details = await tmdbClient.GetItemDetailsAsync(detailsTmdbId, detailsType, cancellationToken);
+
+            // ==================== 新增：写入 Tags 逻辑开始 ====================
+            // 1. 检查配置是否开启
+            // 2. 检查 details 和 origin_country 是否有效
+            if (config.AddCountryTags && details != null && details.origin_country?.Length > 0)
+            {
+                bool tagsChanged = false;
+
+                foreach (var country in details.origin_country)
+                {
+                    // 核心去重判断：不区分大小写检查 Tag 是否已存在
+                    // 这一步至关重要，防止 UpdateItem 触发无限循环刷新
+                    if (!item.Tags.Contains(country, StringComparer.OrdinalIgnoreCase))
+                    {
+                        item.AddTag(country);
+                        tagsChanged = true;
+                    }
+                }
+
+                // 只有当 Tags 列表真的发生变化时，才调用数据库更新
+                if (tagsChanged)
+                {
+                    _logger?.Info("[OriginalPoster] Automatically adding origin_country tags to {0}: {1}", 
+                        item.Name, string.Join(", ", details.origin_country));
+                    
+                    // UpdateItem 会持久化更改到数据库
+                    // ItemUpdateType.MetadataImport 告诉 Emby 这是元数据变更
+                    _libraryManager.UpdateItem(item, item, ItemUpdateType.MetadataImport, cancellationToken);
+                }
+            }
+            // ==================== 新增：写入 Tags 逻辑结束 ====================
 
             string targetLanguage = "en";    //设置fallback为en
             

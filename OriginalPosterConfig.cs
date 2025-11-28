@@ -30,6 +30,10 @@ public class OriginalPosterConfig : EditableOptionsBase
     [Description("选择原语言海报时的优先级策略")]
     public PosterSelectionStrategy PosterSelectionStrategy { get; set; } = PosterSelectionStrategy.OriginalLanguageFirst;
 
+    [DisplayName("启用添加国家标签")]
+    [Description("是否读取 TMDB 的 origin_country (如 US, CN) 并自动写入到影片的标签(Tags)中")]
+    public bool AddCountryTags { get; set; } = false;
+
     [DisplayName("测试模式")]
     [Description("启用后将返回测试海报，用于验证插件功能")]
     public bool TestMode { get; set; } = false;
