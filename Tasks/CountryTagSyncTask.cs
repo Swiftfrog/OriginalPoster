@@ -51,13 +51,13 @@ public class CountryTagSyncTask : IScheduledTask
         var config = Plugin.Instance?.Configuration;
         if (config == null || string.IsNullOrEmpty(config.TmdbApiKey))
         {
-            _logger.Error("OriginalPoster: TMDB API Key is missing. Task aborted."); // ✅ LogError -> Error
+            _logger.Error("[OriginalPoster] TMDB API Key is missing. Task aborted."); // ✅ LogError -> Error
             return;
         }
 
         if (!config.AddCountryTags)
         {
-            _logger.Info("OriginalPoster: 'Auto Add Country Tags' setting is disabled. Task aborted."); // ✅ LogWarning -> Info
+            _logger.Info("[OriginalPoster] 'Auto Add Country Tags' setting is disabled. Task aborted."); // ✅ LogWarning -> Info
             return;
         }
 
@@ -75,7 +75,7 @@ public class CountryTagSyncTask : IScheduledTask
         int processedCount = 0;
         int updatedCount = 0;
 
-        _logger.Info($"OriginalPoster: Found {totalCount} items to check."); // ✅ LogInformation -> Info
+        _logger.Info($"[OriginalPoster] Found {totalCount} items to check."); // ✅ LogInformation -> Info
 
         foreach (var item in items)
         {
@@ -104,14 +104,28 @@ public class CountryTagSyncTask : IScheduledTask
                 {
                     bool tagsChanged = false;
 
-                    foreach (var country in details.origin_country)
+                    // foreach (var country in details.origin_country)
+                    // {
+                    //     if (!item.Tags.Contains(country, StringComparer.OrdinalIgnoreCase))
+                    //     {
+                    //         item.AddTag(country);
+                    //         tagsChanged = true;
+                    //     }
+                    // }
+                    
+                    foreach (var countryCode in details.origin_country)
                     {
-                        if (!item.Tags.Contains(country, StringComparer.OrdinalIgnoreCase))
+                        // 使用 LanguageMapper 获取 "美国 (US)" 格式的标签
+                        var tagText = LanguageMapper.GetCountryTag(countryCode);
+
+                        // 检查是否存在这个格式的标签
+                        if (!string.IsNullOrEmpty(tagText) && !item.Tags.Contains(tagText, StringComparer.OrdinalIgnoreCase))
                         {
-                            item.AddTag(country);
+                            item.AddTag(tagText);
                             tagsChanged = true;
                         }
                     }
+                    
 
                     if (tagsChanged)
                     {
@@ -120,7 +134,7 @@ public class CountryTagSyncTask : IScheduledTask
                         
                         if (updatedCount % 50 == 0)
                         {
-                            _logger.Info($"OriginalPoster: Updated tags for {updatedCount} items so far...");
+                            _logger.Info($"[OriginalPoster] Updated tags for {updatedCount} items so far...");
                         }
                     }
                 }
@@ -129,10 +143,10 @@ public class CountryTagSyncTask : IScheduledTask
             }
             catch (Exception ex)
             {
-                _logger.Error($"OriginalPoster: Error processing {item.Name} (ID: {tmdbId}): {ex.Message}");
+                _logger.Error($"[OriginalPoster] Error processing {item.Name} (ID: {tmdbId}): {ex.Message}");
             }
         }
 
-        _logger.Info($"OriginalPoster: Tag Sync Task Completed. Updated {updatedCount} items out of {totalCount}.");
+        _logger.Info($"[OriginalPoster] Tag Sync Task Completed. Updated {updatedCount} items out of {totalCount}.");
     }
 }

@@ -23,6 +23,22 @@ public static class LanguageMapper
         { "IN", "hi-IN" }, { "TH", "th-TH" }, { "VN", "vi-VN" }
     };
 
+    // 新增：国家代码到中文名称的映射
+    private static readonly Dictionary<string, string> CountryToChineseNameMap = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "US", "美国" }, { "GB", "英国" }, { "CA", "加拿大" }, { "AU", "澳大利亚" },
+        { "CN", "中国" }, { "HK", "香港" }, { "TW", "台湾" }, { "SG", "新加坡" },
+        { "JP", "日本" }, { "KR", "韩国" },
+        { "FR", "法国" }, { "DE", "德国" }, { "ES", "西班牙" }, { "IT", "意大利" },
+        { "RU", "俄罗斯" }, { "PT", "葡萄牙" }, { "BR", "巴西" },
+        { "SA", "沙特" }, { "EG", "埃及" }, { "IL", "以色列" },
+        { "IN", "印度" }, { "TH", "泰国" }, { "VN", "越南" },
+        { "SE", "瑞典" }, { "NO", "挪威" }, { "DK", "丹麦" }, { "FI", "芬兰" },
+        { "NL", "荷兰" }, { "BE", "比利时" }, { "PL", "波兰" }, { "TR", "土耳其" },
+        { "IR", "伊朗" }, { "ID", "印尼" }, { "PH", "菲律宾" }, { "MY", "马来西亚" },
+        { "NZ", "新西兰" }, { "MX", "墨西哥" }, { "AR", "阿根廷" }
+    };
+
     public static string GetLanguageForCountry(string countryCode)
     {
         if (string.IsNullOrEmpty(countryCode))

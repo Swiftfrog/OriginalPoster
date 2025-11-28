@@ -162,16 +162,29 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
             {
                 bool tagsChanged = false;
 
-                foreach (var country in details.origin_country)
+                // foreach (var country in details.origin_country)
+                // {
+                //     // 核心去重判断：不区分大小写检查 Tag 是否已存在
+                //     // 这一步至关重要，防止 UpdateItem 触发无限循环刷新
+                //     if (!item.Tags.Contains(country, StringComparer.OrdinalIgnoreCase))
+                //     {
+                //         item.AddTag(country);
+                //         tagsChanged = true;
+                //     }
+                // }
+                
+                foreach (var countryCode in details.origin_country)
                 {
-                    // 核心去重判断：不区分大小写检查 Tag 是否已存在
-                    // 这一步至关重要，防止 UpdateItem 触发无限循环刷新
-                    if (!item.Tags.Contains(country, StringComparer.OrdinalIgnoreCase))
+                    // 使用 LanguageMapper 获取 "美国 (US)" 格式的标签
+                    var tagText = LanguageMapper.GetCountryTag(countryCode);
+
+                    if (!string.IsNullOrEmpty(tagText) && !item.Tags.Contains(tagText, StringComparer.OrdinalIgnoreCase))
                     {
-                        item.AddTag(country);
+                        item.AddTag(tagText);
                         tagsChanged = true;
                     }
-                }
+                }               
+                
 
                 // 只有当 Tags 列表真的发生变化时，才调用数据库更新
                 if (tagsChanged)
