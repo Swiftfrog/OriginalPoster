@@ -23,6 +23,13 @@ public static class LanguageMapper
         { "IN", "hi-IN" }, { "TH", "th-TH" }, { "VN", "vi-VN" }
     };
 
+    public static string GetLanguageForCountry(string countryCode)
+    {
+        if (string.IsNullOrEmpty(countryCode))
+            return "en-US";
+        return CountryToLanguageMap.TryGetValue(countryCode, out var lang) ? lang : "en-US";
+    }
+    
     // 新增：国家代码到中文名称的映射
     private static readonly Dictionary<string, string> CountryToChineseNameMap = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -39,10 +46,21 @@ public static class LanguageMapper
         { "NZ", "新西兰" }, { "MX", "墨西哥" }, { "AR", "阿根廷" }
     };
 
-    public static string GetLanguageForCountry(string countryCode)
+    /// <summary>
+    /// 将代码转换为 "美国 (US)" 格式
+    /// </summary>
+    public static string GetCountryTag(string countryCode)
     {
-        if (string.IsNullOrEmpty(countryCode))
-            return "en-US";
-        return CountryToLanguageMap.TryGetValue(countryCode, out var lang) ? lang : "en-US";
-    }
+        if (string.IsNullOrWhiteSpace(countryCode)) return string.Empty;
+
+        // 尝试获取中文名
+        if (CountryToChineseNameMap.TryGetValue(countryCode, out var name))
+        {
+            return $"{name} ({countryCode.ToUpper()})";
+        }
+
+        // 如果字典里没有，直接返回代码（例如 "XX"）
+        return countryCode.ToUpper();
+    }    
+    
 }
