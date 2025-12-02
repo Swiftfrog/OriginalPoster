@@ -36,10 +36,9 @@ public class Plugin : BasePluginSimpleUI<OriginalPosterConfig>, IHasThumbImage
         : base(applicationHost)
     {
         Instance = this;
-        // ✅ 修复点：直接使用注入进来的 applicationPaths
+        // 直接使用注入进来的 applicationPaths
         CacheManager = new LanguageCacheManager(applicationPaths, jsonSerializer);
     }
-
 
     public Stream GetThumbImage()
     {
