@@ -32,14 +32,12 @@ public class Plugin : BasePluginSimpleUI<OriginalPosterConfig>, IHasThumbImage
     //     Instance = this;
     // }
 
-    public Plugin(IApplicationHost applicationHost, IJsonSerializer jsonSerializer)
+    public Plugin(IApplicationHost applicationHost, IApplicationPaths applicationPaths, IJsonSerializer jsonSerializer)
         : base(applicationHost)
     {
         Instance = this;
-        
-        // 关键修改在这里：
-        // 从 applicationHost 中获取 .ApplicationPaths 属性
-        CacheManager = new LanguageCacheManager(applicationHost.ApplicationPaths, jsonSerializer);
+        // ✅ 修复点：直接使用注入进来的 applicationPaths
+        CacheManager = new LanguageCacheManager(applicationPaths, jsonSerializer);
     }
 
 
