@@ -260,8 +260,40 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
 
     private string? GetTmdbId(BaseItem item)
     {
-        // 电影、剧集或合集：直接从 ProviderIds 获取
-        if (item is Movie || item is Series || item is BoxSet)
+        // ✅ 1. 优先处理 BoxSet（专用逻辑）
+        if (item is BoxSet boxSet)
+        {
+            string? idString = null;
+            
+            // 优先尝试专用 Key "TmdbCollection"
+            if (boxSet.ProviderIds?.TryGetValue("TmdbCollection", out idString) != true)
+            {
+                // 回退到标准 Key "Tmdb"
+                boxSet.ProviderIds?.TryGetValue(MetadataProviders.Tmdb.ToString(), out idString);
+            }
+            
+            if (!string.IsNullOrEmpty(idString))
+            {
+                // 清理前缀
+                if (idString.StartsWith("collection/", StringComparison.OrdinalIgnoreCase))
+                {
+                    idString = idString.Substring("collection/".Length);
+                }
+                
+                // 验证是否为数字
+                if (int.TryParse(idString, out _))
+                {
+                    _logger?.Debug("[OriginalPoster] Found BoxSet TMDB ID: {0}", idString);
+                    return idString;
+                }
+            }
+            
+            _logger?.Debug("[OriginalPoster] BoxSet found, but no valid numeric TMDB ID in ProviderIds.");
+            return null;
+        }
+        
+        // ✅ 2. 处理 Movie/Series（简单逻辑）
+        if (item is Movie || item is Series)
         {
             if (item.ProviderIds?.TryGetValue(MetadataProviders.Tmdb.ToString(), out var id) == true)
             {
@@ -269,7 +301,8 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
                 return id;
             }
         }
-        // 播出季：从 Parent Series 获取 TMDB ID + 季号
+        
+        // ✅ 3. 处理 Season
         else if (item is Season season)
         {
             var series = season.Series;
@@ -277,11 +310,10 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
             {
                 var seasonId = $"{seriesTmdbId}_S{season.IndexNumber}";
                 _logger?.Debug("[OriginalPoster] Season composite TMDB ID: {0}", seasonId);
-                // 返回组合 ID，如 "1396_S1"
                 return seasonId;
             }
         }
-    
+        
         return null;
     }
 
