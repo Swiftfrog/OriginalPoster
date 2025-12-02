@@ -154,27 +154,45 @@ public class OriginalPosterProvider : IRemoteImageProvider, IHasOrder
 
             string targetLanguage = "en";    //设置fallback为en
             
-            if (details != null)
+            // [修改开始] ----------------------------------------------------
+            // 1. 尝试从持久化缓存读取
+            if (Plugin.Instance?.CacheManager.TryGetLanguage(detailsTmdbId, detailsType, out var cachedLang) == true)
             {
-                string originalLang = details.original_language;
-                if (originalLang == "cn") originalLang = "zh"; // 标准化
+                _logger?.Debug("[OriginalPoster] Cache HIT for {0}: {1}", detailsTmdbId, cachedLang);
+                targetLanguage = cachedLang!;
+            }
+            else
+            {
+                // 2. 缓存未命中，请求 API
+                _logger?.Debug("[OriginalPoster] Cache MISS for {0}, fetching from TMDB...", detailsTmdbId);
+                
+                var details = await tmdbClient.GetItemDetailsAsync(detailsTmdbId, detailsType, cancellationToken);
+                        
+                if (details != null)
+                {
+                    string originalLang = details.original_language;
+                    if (originalLang == "cn") originalLang = "zh"; // 标准化
+                
+                    // 只要 original_language 存在，就优先使用它,不区分中文CN，HK,TW和SG
+                    if (!string.IsNullOrEmpty(originalLang))
+                    {
+                        targetLanguage = originalLang;
+                    }
+                    // 否则回退到 origin_country 或 production_countries
+                    else if (details.origin_country?.Length > 0)
+                    {
+                        targetLanguage = LanguageMapper.GetLanguageForCountry(details.origin_country[0]);
+                    }
+                    else if (details.production_countries?.Length > 0)
+                    {
+                        targetLanguage = LanguageMapper.GetLanguageForCountry(details.production_countries[0].iso_3166_1);
+                    }
+                    
+                    Plugin.Instance?.CacheManager.AddAndSave(detailsTmdbId, detailsType, targetLanguage);
+                    
+                }                
+            }
             
-                // 只要 original_language 存在，就优先使用它,不区分中文CN，HK,TW和SG
-                if (!string.IsNullOrEmpty(originalLang))
-                {
-                    targetLanguage = originalLang;
-                }
-                // 否则回退到 origin_country 或 production_countries
-                else if (details.origin_country?.Length > 0)
-                {
-                    targetLanguage = LanguageMapper.GetLanguageForCountry(details.origin_country[0]);
-                }
-                else if (details.production_countries?.Length > 0)
-                {
-                    targetLanguage = LanguageMapper.GetLanguageForCountry(details.production_countries[0].iso_3166_1);
-                }
-            }                
-
             // if (details != null)
             // {
             //     string originalLang = details.original_language;

@@ -8,6 +8,8 @@ using MediaBrowser.Model.Serialization;
 using System.IO;
 using System;
 
+using OriginalPoster.Services;
+
 namespace OriginalPoster;
 
 public class Plugin : BasePluginSimpleUI<OriginalPosterConfig>, IHasThumbImage
@@ -22,11 +24,22 @@ public class Plugin : BasePluginSimpleUI<OriginalPosterConfig>, IHasThumbImage
     
     public OriginalPosterConfig Configuration => GetOptions();
     
-    public Plugin(IApplicationHost applicationPaths)
+    public LanguageCacheManager CacheManager { get; private set; }
+    
+    // public Plugin(IApplicationHost applicationPaths)
+    //     : base(applicationPaths)
+    // {
+    //     Instance = this;
+    // }
+
+    public Plugin(IApplicationHost applicationPaths, IJsonSerializer jsonSerializer) // 注意：这里Emby会自动注入 jsonSerializer
         : base(applicationPaths)
     {
         Instance = this;
+        // 初始化缓存管理器
+        CacheManager = new LanguageCacheManager(applicationPaths, jsonSerializer);
     }
+
 
     public Stream GetThumbImage()
     {
