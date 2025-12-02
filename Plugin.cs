@@ -32,12 +32,14 @@ public class Plugin : BasePluginSimpleUI<OriginalPosterConfig>, IHasThumbImage
     //     Instance = this;
     // }
 
-    public Plugin(IApplicationHost applicationPaths, IJsonSerializer jsonSerializer) // 注意：这里Emby会自动注入 jsonSerializer
-        : base(applicationPaths)
+    public Plugin(IApplicationHost applicationHost, IJsonSerializer jsonSerializer)
+        : base(applicationHost)
     {
         Instance = this;
-        // 初始化缓存管理器
-        CacheManager = new LanguageCacheManager(applicationPaths, jsonSerializer);
+        
+        // 关键修改在这里：
+        // 从 applicationHost 中获取 .ApplicationPaths 属性
+        CacheManager = new LanguageCacheManager(applicationHost.ApplicationPaths, jsonSerializer);
     }
 
 
